@@ -66,7 +66,7 @@ Target minimal starter (from the seed): `package.json`, `install.js`, `uninstall
 
 ## Vision & Problem Statement
 
-Pain: the motivation is mainly learning the shared-registry distribution pattern — packaging AI artifacts (skills, rules) as a versioned package and installing them into a consumer repo. Today `critical-path` gets its AI skills only via the course CLI (`10x-cli`); there is nothing of the author's own being distributed yet.
+Pain: the motivation is mainly learning the shared-registry distribution pattern — packaging AI artifacts (skills, rules) as a versioned package and installing them into a consumer repo. Today `critical-path` gets its AI skills only from an external skills-distribution tool; there is nothing of the author's own being distributed yet.
 
 Moment: setting up AI-tool skills and rules in `critical-path` (the first consumer repo).
 
@@ -74,7 +74,7 @@ Insight: not stated.
 
 ## User & Persona
 
-Primary persona: the author — sole developer, the only consumer in v1. Works on GitHub; first consumer repo is `RemekGdansk/critical-path` (public, TypeScript). Uses Claude Code (must-have); GitHub Copilot and Codex are nice-to-have targets.
+Primary persona: the author — sole developer, the only consumer in v1. First consumer repo is `RemekGdansk/critical-path` (public). Uses Claude Code (must-have); GitHub Copilot and Codex are nice-to-have targets.
 
 ## User Stories
 
@@ -93,14 +93,14 @@ Primary persona: the author — sole developer, the only consumer in v1. Works o
 ## Functional Requirements
 
 ### Publishing
-- FR-001: Author can publish a new toolkit version to GitHub Packages by bumping the version and creating a version tag / GitHub Release (CI does the publish). Priority: must-have
-  > Socrates: Counter-argument considered: "publishing on every push to main fires on README edits too." Resolution: revised — publish is triggered by a version tag / release, not by push.
+- FR-001: Author can publish a new toolkit version to the package registry by bumping the version and cutting a version release (CI does the publish). Priority: must-have
+  > Socrates: Counter-argument considered: "publishing on every push to main fires on README edits too." Resolution: revised — publish is triggered by a version release, not by push.
 - FR-002: Author gets a visible CI failure when publishing a version that already exists. Priority: must-have
   > Socrates: Counter-argument considered: "the registry already rejects a duplicate version, so the failed publish step is the visible failure." Resolution: accepted — the registry's rejection satisfies this FR; no custom pre-check needed.
 
 ### Install / update
-- FR-003: Author can install the toolkit into a consumer repo with one `npm install` command, both locally and in the consumer's CI. Priority: must-have
-  > Socrates: Counter-arguments considered: "consumer CI doesn't need it" and "postinstall is fragile." Resolution: stands as written.
+- FR-003: Author can install the toolkit into a consumer repo with one install command, both locally and in the consumer's CI. Priority: must-have
+  > Socrates: Counter-arguments considered: "consumer CI doesn't need it" and "running setup automatically on package install is fragile." Resolution: stands as written.
 - FR-004: Author can use the toolkit's skills in Claude Code after install, with the skills in a toolkit-named subfolder. Priority: must-have
   > Socrates: Counter-arguments considered: "a subfolder costs discoverability (workspace trust, launch from repo root)" and "installed files pollute the consumer's git." Resolution: stands as written.
 - FR-005: Author gets the toolkit's rules inserted between sentinel markers in the consumer's `CLAUDE.md`, with nothing outside the markers changed. Priority: nice-to-have
@@ -111,8 +111,8 @@ Primary persona: the author — sole developer, the only consumer in v1. Works o
   > Socrates: Counter-arguments considered: "skills removed in a newer version linger" and "locally edited installed files get clobbered." Resolution: stands as written.
 
 ### Uninstall
-- FR-008: Author can uninstall the toolkit with an explicit uninstall command run before `npm uninstall`, removing exactly what the manifest lists and leaving their own content intact. Priority: must-have
-  > Socrates: Counter-argument considered: "npm 7+ never runs uninstall lifecycle scripts, so `npm uninstall` alone leaves files orphaned." Resolution: revised — uninstall is an explicit command the author runs before `npm uninstall`.
+- FR-008: Author can uninstall the toolkit with an explicit uninstall command run before removing the package, removing exactly what the manifest lists and leaving their own content intact. Priority: must-have
+  > Socrates: Counter-argument considered: "removing the package does not run any toolkit cleanup, so removing it alone leaves files orphaned." Resolution: revised — uninstall is an explicit command the author runs before removing the package.
 
 ### Other agents
 - FR-009: Author can use the toolkit's skills and rules from GitHub Copilot after install. Priority: nice-to-have
@@ -143,10 +143,10 @@ Inputs: the local branches, their upstream state (present or gone), the up-to-da
 
 Single human user (the author); no roles. Access is about the package registry, not an app login.
 
-- **Publish:** only the GitHub Actions workflow in `RemekGdansk/ai-toolkit-example`, using `GITHUB_TOKEN`. No personal publish tokens.
-- **Install (local):** a classic PAT with `read:packages`, kept in local env / `~/.npmrc` — never in a committed `.npmrc`. The consumer's committed `.npmrc` only maps the `@remekgdansk` scope to `https://npm.pkg.github.com`.
-- **Install (CI):** `critical-path`'s CI installs the package with a `read:packages` token stored as a repository secret.
-- **Revocation:** install access ends when the PAT (local or the CI secret) is revoked or expires; publish access ends when the workflow's or repo's permissions change. No per-user access list in v1.
+- **Publish:** only the CI publish workflow in `RemekGdansk/ai-toolkit-example`, using a credential scoped to that workflow. No personal publish tokens.
+- **Install (local):** a personal read-only install token, kept in the author's local environment — never in a committed file. The consumer's committed config only points the package's scope at the registry and carries no credentials.
+- **Install (CI):** `critical-path`'s CI installs the package with a read-only install token stored as a CI secret.
+- **Revocation:** install access ends when the install token (local or the CI secret) is revoked or expires; publish access ends when the workflow's or repo's permissions change. No per-user access list in v1.
 
 ## MVP flow (draft)
 
@@ -169,7 +169,7 @@ Timeline: author wants it done in 8 working hours (`mvp_weeks: 1`).
 - A CI-published version installs into `critical-path` and the repo-refresh skill is usable from Claude Code there.
 - Uninstall leaves `critical-path` exactly as it was before install (the author's own files and rules text untouched).
 - Bumping the version, publishing and updating in `critical-path` delivers the changed skill.
-- `critical-path`'s CI installs the package using the `read:packages` secret.
+- `critical-path`'s CI installs the package using a read-only install token held in its CI secrets.
 
 ### Secondary
 - The repo-refresh skill and rules are also usable from GitHub Copilot and Codex in `critical-path`.
@@ -178,14 +178,14 @@ Timeline: author wants it done in 8 working hours (`mvp_weeks: 1`).
 ### Guardrails
 - Never overwrite consumer content: install touches only files in its manifest and only text between its sentinel markers.
 - Uninstall is the exact inverse of install, driven by the manifest.
-- No tokens in committed files: tokens live only in CI secrets or local env, never in a committed `.npmrc`.
+- No tokens in committed files: tokens live only in CI secrets or local env, never in a committed config file.
 - Publish only a new version: a release that re-uses an existing version fails visibly instead of half-publishing.
 
 ## Non-Goals
 
 - **No code-review skill in v1** — deferred to a later version; v1 ships repo refresh only.
 - **No agents beyond Claude Code, GitHub Copilot and Codex** — Cursor, Windsurf and others are out of v1.
-- **No gated access, AWS or API+CLI delivery** — no private package, no per-user access list, no CodeArtifact (Model 2), no API+CLI (Model 3); the only recipient is the author on GitHub.
+- **No gated access or alternative delivery** — no private package, no per-user access list, no managed cloud registry, no API+CLI delivery; the only recipient is the author.
 - **No remote branch deletion** — repo refresh only ever deletes local branches; it never deletes or pushes anything on the remote.
 - **No Windows support** — install, uninstall and repo refresh only need to work on macOS and Linux in v1.
 - **No automatic updates** — installed skills change only when the author updates the package; no background sync or update checks.
@@ -211,6 +211,18 @@ Timeline: author wants it done in 8 working hours (`mvp_weeks: 1`).
 - Package name: `@remekgdansk/ai-toolkit-example`. Source + publish workflow live in this repo.
 - Remark on the flow: toolkit skills must land in their own subfolder, not directly under `.claude/skills/` (or the equivalent for other agents).
 - Author asked for Copilot and Codex to be included so the design stays extensible.
+
+## Forward: tech-stack
+
+Moved out of the PRD-bound sections on 2026-10-29 (PRD self-review flagged them as technical leak).
+
+- Registry: GitHub Packages (npm registry), package `@remekgdansk/ai-toolkit-example`, public. GitHub Packages requires a classic PAT with `read:packages` to install npm packages, including public ones.
+- Publish (FR-001, Access Control): a GitHub Actions workflow in `RemekGdansk/ai-toolkit-example`, triggered by a version tag / GitHub Release, authenticating with `GITHUB_TOKEN`.
+- Install (FR-003, Access Control): `npm install` (`npm i -D @remekgdansk/ai-toolkit-example`). Consumer's committed `.npmrc` only maps the `@remekgdansk` scope to `https://npm.pkg.github.com`; the local PAT lives in local env / `~/.npmrc`; consumer CI uses the `read:packages` PAT stored as a repository secret.
+- Install hook (FR-003 Socratic): `postinstall` was the concern raised as fragile.
+- Uninstall (FR-008): npm v7+ never runs uninstall lifecycle scripts, so the explicit uninstall command runs before `npm uninstall`.
+- Consumer repo: `critical-path` is hosted on GitHub and written in TypeScript.
+- Rejected delivery alternatives (Non-Goals): AWS CodeArtifact and API+CLI.
 
 ## Forward: technical-roadmap
 
