@@ -283,38 +283,38 @@ None. No consumer has an earlier version installed.
 
 #### Automated
 
-- [x] 1.1 Build succeeds and emits an executable entry — 25154b7
-- [x] 1.2 Plugin files validate strictly — 25154b7
-- [x] 1.3 Package contents are exactly the runtime set — 25154b7
-- [x] 1.4 CLI routing works — 25154b7
+- [x] 1.1 Build succeeds and emits an executable entry — b802b5c
+- [x] 1.2 Plugin files validate strictly — b802b5c
+- [x] 1.3 Package contents are exactly the runtime set — b802b5c
+- [x] 1.4 CLI routing works — b802b5c
 
 #### Manual
 
-- [x] 1.5 The SKILL.md description reads as the intended repo-refresh trigger, and its body clearly deletes nothing — 25154b7
+- [x] 1.5 The SKILL.md description reads as the intended repo-refresh trigger, and its body clearly deletes nothing — b802b5c
 
 ### Phase 2: Installer, manifest and guards
 
 #### Automated
 
-- [x] 2.1 Type check and build are clean — fdf17eb
-- [x] 2.2 All installer scenarios pass — fdf17eb
+- [x] 2.1 Type check and build are clean — b802b5c
+- [x] 2.2 All installer scenarios pass — b802b5c
 
 #### Manual
 
-- [x] 2.3 Conflict and local-edit error messages name every offending path and say what to do next — fdf17eb
+- [x] 2.3 Conflict and local-edit error messages name every offending path and say what to do next — b802b5c
 
 ### Phase 3: End-to-end check in critical-path
 
 #### Automated
 
-- [x] 3.1 Tarball is produced — ad57957
-- [x] 3.2 Install in critical-path succeeds — ad57957
-- [x] 3.3 Re-install is a no-op — ad57957
-- [x] 3.4 Existing consumer skills are untouched — ad57957
-- [x] 3.5 Claude Code sees the plugin — ad57957
+- [x] 3.1 Tarball is produced — b802b5c
+- [x] 3.2 Install in critical-path succeeds — b802b5c
+- [x] 3.3 Re-install is a no-op — b802b5c
+- [x] 3.4 Existing consumer skills are untouched — b802b5c
+- [x] 3.5 Claude Code sees the plugin — b802b5c
 
 #### Manual
 
-- [x] 3.6 In Claude Code, /reload-plugins then /ai-toolkit-example:repo-refresh runs the skeleton and deletes nothing — ad57957
-- [x] 3.7 critical-path's package.json and package-lock.json are reverted, and git status there is clean — ad57957
-- [x] 3.8 Following README.md literally reproduces the install — ad57957
+- [x] 3.6 In Claude Code, /reload-plugins then /ai-toolkit-example:repo-refresh runs the skeleton and deletes nothing — b802b5c
+- [x] 3.7 critical-path's package.json and package-lock.json are reverted, and git status there is clean — b802b5c
+- [x] 3.8 Following README.md literally reproduces the install — b802b5c
