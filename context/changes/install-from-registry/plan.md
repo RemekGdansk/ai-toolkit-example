@@ -307,11 +307,11 @@ The `ai-toolkit` job skips `npm ci` and browser installs. It only downloads the 
 
 #### Automated
 
-- [x] 3.1 Toolkit checks still pass: `npm test`
-- [x] 3.2 The README names the registry command and the scope line
-- [x] 3.3 The README shows no literal token
+- [x] 3.1 Toolkit checks still pass: `npm test` — 8325132
+- [x] 3.2 The README names the registry command and the scope line — 8325132
+- [x] 3.3 The README shows no literal token — 8325132
 
 #### Manual
 
-- [x] 3.4 Following only the README matches what was done in `critical-path`
-- [x] 3.5 The `E401` row quotes the message observed in Phase 1
+- [x] 3.4 Following only the README matches what was done in `critical-path` — 8325132
+- [x] 3.5 The `E401` row quotes the message observed in Phase 1 — 8325132
