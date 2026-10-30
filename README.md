@@ -30,7 +30,7 @@ The package is published to GitHub Packages as `@remekgdansk/ai-toolkit-example`
 
    ```json
    "scripts": {
-     "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.2.0"
+     "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.2.1"
    }
    ```
 
@@ -42,7 +42,7 @@ The package is published to GitHub Packages as `@remekgdansk/ai-toolkit-example`
    npm run ai-toolkit -- install
    ```
 
-   On success it prints `installed @remekgdansk/ai-toolkit-example@0.2.0 (3 files)`, the command to invoke the skill, and a reminder to reload plugins. It exits 0.
+   On success it prints `installed @remekgdansk/ai-toolkit-example@0.2.1 (3 files)`, the command to invoke the skill, and a reminder to reload plugins. It exits 0.
 
 When the token expires, create a new one and re-run the `npm login` command.
 
@@ -112,12 +112,12 @@ For developing the toolkit, install it from a tarball instead of the registry.
    npm pack
    ```
 
-   This creates `remekgdansk-ai-toolkit-example-0.2.0.tgz`.
+   This creates `remekgdansk-ai-toolkit-example-0.2.1.tgz`.
 
 2. In the consumer repo, add it as a dev dependency:
 
    ```sh
-   npm i -D <path-to-this-repo>/remekgdansk-ai-toolkit-example-0.2.0.tgz
+   npm i -D <path-to-this-repo>/remekgdansk-ai-toolkit-example-0.2.1.tgz
    ```
 
    With npm 12 or later you may see `npm warn install-scripts ... blocked because they are not covered by allowScripts`. Those packages are the consumer's own dependencies; this package has no install scripts, so the warning does not affect it.
