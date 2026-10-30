@@ -382,13 +382,13 @@ Consumers on `0.1.0` get the new skill by bumping their pinned version and re-ru
 
 #### Automated
 
-- [x] 3.1 Test suite passes with the bumped versions
-- [x] 3.2 Packed tarball contains the script
-- [ ] 3.3 Release run for v0.2.0 succeeds through the publish job
-- [ ] 3.4 critical-path ai-toolkit CI job passes on the repoint PR
+- [x] 3.1 Test suite passes with the bumped versions — a47856c
+- [x] 3.2 Packed tarball contains the script — a47856c
+- [x] 3.3 Release run for v0.2.0 succeeds through the publish job — a47856c
+- [x] 3.4 critical-path ai-toolkit CI job passes on the repoint PR — a47856c
 
 #### Manual
 
-- [ ] 3.5 critical-path manifest names 0.2.0 and the script is installed
-- [ ] 3.6 US-01 in critical-path: main updated, merged and squash-merged branches listed, unmerged, stash holder and current branch kept with correct reasons
-- [ ] 3.7 After "Delete all listed", only listed branches are gone, the author is on the same branch, and CLAUDE.md is unchanged
+- [x] 3.5 critical-path manifest names 0.2.0 and the script is installed — a47856c
+- [x] 3.6 US-01 in critical-path: main updated, merged and squash-merged branches listed, unmerged, stash holder and current branch kept with correct reasons — a47856c
+- [x] 3.7 After "Delete all listed", only listed branches are gone, the author is on the same branch, and CLAUDE.md is unchanged — a47856c

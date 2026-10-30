@@ -1,7 +1,7 @@
 ---
 change_id: safe-repo-refresh
 title: Safe repo refresh
-status: implementing
+status: implemented
 created: 2026-10-30
 updated: 2026-10-30
 archived_at: null
