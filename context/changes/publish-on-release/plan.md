@@ -255,18 +255,18 @@ None. Nothing has been published yet, and `0.1.0` is the first registry version.
 
 #### Automated
 
-- [x] 1.1 Tests and build pass: `npm test`
-- [x] 1.2 Lockfile is in sync and installs cleanly
-- [x] 1.3 Package metadata points at GitHub Packages
-- [x] 1.4 Packed tarball contains the CLI and the plugin files
-- [x] 1.5 Every action in the workflow is pinned to a full SHA
-- [x] 1.6 The workflow never interpolates release payload into a script
-- [x] 1.7 Plugin still validates locally: `npm run validate:plugin`
+- [x] 1.1 Tests and build pass: `npm test` — ad879a9
+- [x] 1.2 Lockfile is in sync and installs cleanly — ad879a9
+- [x] 1.3 Package metadata points at GitHub Packages — ad879a9
+- [x] 1.4 Packed tarball contains the CLI and the plugin files — ad879a9
+- [x] 1.5 Every action in the workflow is pinned to a full SHA — ad879a9
+- [x] 1.6 The workflow never interpolates release payload into a script — ad879a9
+- [x] 1.7 Plugin still validates locally: `npm run validate:plugin` — ad879a9
 
 #### Manual
 
-- [ ] 1.8 PR run: `check` green, `publish` skipped
-- [ ] 1.9 `check` log shows guard skipped and tarball contents check passing
+- [x] 1.8 PR run: `check` green, `publish` skipped
+- [x] 1.9 `check` log shows guard skipped and tarball contents check passing
 - [ ] 1.10 Push to `main` runs `check` green with `publish` skipped
 
 ### Phase 2: First release and failure paths
