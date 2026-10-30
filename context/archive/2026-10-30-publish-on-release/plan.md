@@ -274,9 +274,9 @@ None. Nothing has been published yet, and `0.1.0` is the first registry version.
 
 #### Manual
 
-- [x] 2.1 Pre-release `v0.1.0` fails the guard and is deleted — 326dd28
-- [x] 2.2 Release `v0.1.0` runs `check` and `publish` green — 326dd28
-- [x] 2.3 Package `0.1.0` is in GitHub Packages, linked to the repo, and public — 326dd28
-- [x] 2.4 Re-running the `v0.1.0` release fails visibly with `E409` — 326dd28
-- [x] 2.5 Mismatched release `v0.1.1` fails the guard and is deleted — 326dd28
-- [x] 2.6 Only release and tag `v0.1.0` remain — 326dd28
+- [x] 2.1 Pre-release `v0.1.0` fails the guard and is deleted — f04bc64
+- [x] 2.2 Release `v0.1.0` runs `check` and `publish` green — f04bc64
+- [x] 2.3 Package `0.1.0` is in GitHub Packages, linked to the repo, and public — f04bc64
+- [x] 2.4 Re-running the `v0.1.0` release fails visibly with `E409` — f04bc64
+- [x] 2.5 Mismatched release `v0.1.1` fails the guard and is deleted — f04bc64
+- [x] 2.6 Only release and tag `v0.1.0` remain — f04bc64
