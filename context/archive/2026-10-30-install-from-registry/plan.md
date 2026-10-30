@@ -269,49 +269,49 @@ The `ai-toolkit` job skips `npm ci` and browser installs. It only downloads the 
 
 #### Automated
 
-- [x] 1.1 The local token reads the registry: `npm view @remekgdansk/ai-toolkit-example@0.1.0 version` prints `0.1.0` — dda9d35
-- [x] 1.2 The committed config alone carries no credentials: `npm view … --userconfig /dev/null` fails with `E401`, message recorded — dda9d35
-- [x] 1.3 `critical-path/.npmrc` is exactly the scope line — dda9d35
-- [x] 1.4 `package-lock.json` is unchanged and the toolkit is in no dependency field — dda9d35
-- [x] 1.5 Clean-slate install succeeds: `npm run ai-toolkit -- install` exits 0 and prints `installed @remekgdansk/ai-toolkit-example@0.1.0 (2 files)` — dda9d35
-- [x] 1.6 The installed copy came from GitHub Packages (npx cache `resolved` on `npm.pkg.github.com`) — dda9d35
-- [x] 1.7 Install is idempotent: second run exits 0 with unchanged hashes — dda9d35
-- [x] 1.8 No tracked file in `critical-path` carries a token — dda9d35
-- [x] 1.9 `critical-path` still installs without any registry token: `npm ci --userconfig /dev/null` succeeds — dda9d35
+- [x] 1.1 The local token reads the registry: `npm view @remekgdansk/ai-toolkit-example@0.1.0 version` prints `0.1.0` — 9bf7292
+- [x] 1.2 The committed config alone carries no credentials: `npm view … --userconfig /dev/null` fails with `E401`, message recorded — 9bf7292
+- [x] 1.3 `critical-path/.npmrc` is exactly the scope line — 9bf7292
+- [x] 1.4 `package-lock.json` is unchanged and the toolkit is in no dependency field — 9bf7292
+- [x] 1.5 Clean-slate install succeeds: `npm run ai-toolkit -- install` exits 0 and prints `installed @remekgdansk/ai-toolkit-example@0.1.0 (2 files)` — 9bf7292
+- [x] 1.6 The installed copy came from GitHub Packages (npx cache `resolved` on `npm.pkg.github.com`) — 9bf7292
+- [x] 1.7 Install is idempotent: second run exits 0 with unchanged hashes — 9bf7292
+- [x] 1.8 No tracked file in `critical-path` carries a token — 9bf7292
+- [x] 1.9 `critical-path` still installs without any registry token: `npm ci --userconfig /dev/null` succeeds — 9bf7292
 
 #### Manual
 
-- [x] 1.10 Both PATs are classic, `read:packages` only, with a recorded expiry; `GH_PKG_TOKEN` is listed in `critical-path` secrets — dda9d35
-- [x] 1.11 Claude Code in `critical-path` lists `ai-toolkit-example@skills-dir` and runs `/ai-toolkit-example:repo-refresh` — dda9d35
-- [x] 1.12 `.claude/` content outside the toolkit folder and manifest is unchanged after wipe and install — dda9d35
+- [x] 1.10 Both PATs are classic, `read:packages` only, with a recorded expiry; `GH_PKG_TOKEN` is listed in `critical-path` secrets — 9bf7292
+- [x] 1.11 Claude Code in `critical-path` lists `ai-toolkit-example@skills-dir` and runs `/ai-toolkit-example:repo-refresh` — 9bf7292
+- [x] 1.12 `.claude/` content outside the toolkit folder and manifest is unchanged after wipe and install — 9bf7292
 
 ### Phase 2: critical-path CI install job
 
 #### Automated
 
-- [x] 2.1 Every `uses:` is SHA-pinned — aa3f600
-- [x] 2.2 The secret is read only through `env:` — aa3f600
-- [x] 2.3 The hygiene step passes on the clean branch — aa3f600
-- [x] 2.4 The PR's `ai-toolkit` job is green with install and unchanged second install in its log — aa3f600
-- [x] 2.5 `ci` and `Workers Builds: critical-path` are green on the PR — aa3f600
-- [x] 2.6 After the squash merge, `ai-toolkit` on `main` is green and Workers Builds deploys `main` — aa3f600
+- [x] 2.1 Every `uses:` is SHA-pinned — 9bf7292
+- [x] 2.2 The secret is read only through `env:` — 9bf7292
+- [x] 2.3 The hygiene step passes on the clean branch — 9bf7292
+- [x] 2.4 The PR's `ai-toolkit` job is green with install and unchanged second install in its log — 9bf7292
+- [x] 2.5 `ci` and `Workers Builds: critical-path` are green on the PR — 9bf7292
+- [x] 2.6 After the squash merge, `ai-toolkit` on `main` is green and Workers Builds deploys `main` — 9bf7292
 
 #### Manual
 
-- [x] 2.7 A throwaway token commit turns "Token hygiene" red and is reverted before merge — aa3f600
-- [x] 2.8 "Secret present" message and job-level `if` reviewed; Dependabot skip observed or recorded as not yet observed — aa3f600
-- [x] 2.9 The merged squash commit on `main` has no token in its diff — aa3f600
-- [x] 2.10 Dependabot's npm update job runs without a registry error after the merge, or is recorded as not yet observed — aa3f600
+- [x] 2.7 A throwaway token commit turns "Token hygiene" red and is reverted before merge — 9bf7292
+- [x] 2.8 "Secret present" message and job-level `if` reviewed; Dependabot skip observed or recorded as not yet observed — 9bf7292
+- [x] 2.9 The merged squash commit on `main` has no token in its diff — 9bf7292
+- [x] 2.10 Dependabot's npm update job runs without a registry error after the merge, or is recorded as not yet observed — 9bf7292
 
 ### Phase 3: Toolkit README for the registry path
 
 #### Automated
 
-- [x] 3.1 Toolkit checks still pass: `npm test` — 8325132
-- [x] 3.2 The README names the registry command and the scope line — 8325132
-- [x] 3.3 The README shows no literal token — 8325132
+- [x] 3.1 Toolkit checks still pass: `npm test` — 9bf7292
+- [x] 3.2 The README names the registry command and the scope line — 9bf7292
+- [x] 3.3 The README shows no literal token — 9bf7292
 
 #### Manual
 
-- [x] 3.4 Following only the README matches what was done in `critical-path` — 8325132
-- [x] 3.5 The `E401` row quotes the message observed in Phase 1 — 8325132
+- [x] 3.4 Following only the README matches what was done in `critical-path` — 9bf7292
+- [x] 3.5 The `E401` row quotes the message observed in Phase 1 — 9bf7292

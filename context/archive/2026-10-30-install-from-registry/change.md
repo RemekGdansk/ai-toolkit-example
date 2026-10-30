@@ -1,10 +1,10 @@
 ---
 change_id: install-from-registry
 title: Install from registry
-status: impl_reviewed
+status: archived
 created: 2026-10-30
 updated: 2026-10-30
-archived_at: null
+archived_at: 2026-10-30T20:29:32Z
 ---
 
 ## Notes

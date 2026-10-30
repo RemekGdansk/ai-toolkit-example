@@ -43,7 +43,7 @@ The author wants to learn the shared-registry distribution pattern: packaging th
 | ---- | --------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------- | -------- |
 | S-01 | local-install-claude-code   | install the toolkit into `critical-path` with one command and see its skill in Claude Code, in a toolkit-named subfolder | —             | FR-003, FR-004, FR-006, NFR-install-idempotent, US-01 | done        |
 | S-02 | publish-on-release          | cut a version release and have CI publish it to the registry, with a visible failure for a reused version  | —             | FR-001, FR-002                                    | done        |
-| S-03 | install-from-registry       | install a CI-published version into `critical-path`, locally and in its CI, with no token in committed files | S-01, S-02    | FR-003, FR-004, US-01                             | in-progress |
+| S-03 | install-from-registry       | install a CI-published version into `critical-path`, locally and in its CI, with no token in committed files | S-01, S-02    | FR-003, FR-004, US-01                             | done        |
 | S-04 | safe-repo-refresh           | ask Claude Code in `critical-path` to refresh the repo and delete only branches whose work is already in main, after confirming | S-01          | FR-011, US-01, NFR-no-unmerged-work-lost          | proposed |
 | S-05 | clean-uninstall             | run the uninstall command and get `critical-path` back exactly as it was before install                    | S-01          | FR-008, FR-006                                    | proposed |
 | S-06 | update-to-new-version       | bump the version, publish, update in `critical-path` and get the changed skill with nothing stale or duplicated | S-03          | FR-007, FR-001                                    | proposed |
@@ -111,7 +111,7 @@ None. Each cross-cutting element (package metadata, registry config, test harnes
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** This is the full distribution loop and the milestone's validation point; the risk is token handling (the registry requires a token even for a public package), so the "no token in committed files" guardrail must be verified here.
-- **Status:** in-progress
+- **Status:** done
 
 ### S-04: Safe repo refresh
 
@@ -187,3 +187,4 @@ None. Each cross-cutting element (package metadata, registry config, test harnes
 
 - **S-01: user can install the toolkit (from a locally packed build) into `critical-path` with one install command, see its skill in Claude Code in a toolkit-named subfolder, and re-run install with no change in result.** — Archived 2026-10-30 → `context/archive/2026-10-30-local-install-claude-code/`. Lesson: —.
 - **S-02: user can bump the version, cut a version release, and have CI publish the package to the registry; publishing a version that already exists fails the CI run visibly.** — Archived 2026-10-30 → `context/archive/2026-10-30-publish-on-release/`. Lesson: —.
+- **S-03: user can install a CI-published version into `critical-path` with one command — locally with a personal read-only token in their environment, and in `critical-path`'s CI with a read-only token in CI secrets — and use the toolkit's skill from Claude Code; committed config only points the package scope at the registry.** — Archived 2026-10-30 → `context/archive/2026-10-30-install-from-registry/`. Lesson: —.
