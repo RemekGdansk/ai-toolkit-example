@@ -190,6 +190,7 @@ Exercise the workflow on real releases: prove the guard rejects a pre-release, p
    - In Package settings → Danger Zone → Change visibility, set it to **Public**. This is irreversible, and the PRD requires a public package.
 4. **Duplicate version (FR-002):** re-run all jobs of the `v0.1.0` release run (`gh run rerun <run-id>`).
    - Expect: `check` green, then `publish` red with an `E409`/"Cannot publish over existing version" error.
+   - Observed (run 41106110981, attempt 2): `npm error You cannot publish over the previously published versions: 0.1.0.` with no `E409` code in the log. The README failure table quotes this message.
 5. **Mismatched tag:** `gh release create v0.1.1 --target main --title "guard test" --notes "guard test"` while `package.json` is still `0.1.0`.
    - Expect: `check` fails on the release guard, naming `v0.1.1` and `0.1.0`, and `publish` does not run.
    - Then: `gh release delete v0.1.1 --cleanup-tag --yes`.
