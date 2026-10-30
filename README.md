@@ -6,6 +6,106 @@ Install is an explicit command, not a `postinstall` script. Requires Node 22 or 
 
 ## Install
 
+The package is published to GitHub Packages as `@remekgdansk/ai-toolkit-example`. GitHub Packages needs a token even to install a public package.
+
+1. Create a classic personal access token with only the `read:packages` scope and an expiry date. GitHub Packages accepts only classic tokens.
+
+2. Log in to the registry once per machine:
+
+   ```sh
+   npm login --scope=@remekgdansk --auth-type=legacy --registry=https://npm.pkg.github.com
+   ```
+
+   Enter your GitHub username in lowercase (npm rejects uppercase with `npm warn Name must be lowercase`, prompts again and writes nothing) and the token as the password. npm stores the token in your user-level `~/.npmrc`, outside the repo.
+
+3. In the consumer repo root, commit a `.npmrc` that holds only the scope line:
+
+   ```ini
+   @remekgdansk:registry=https://npm.pkg.github.com
+   ```
+
+   Never add a token line or a `${...}` auth reference to it.
+
+4. Add a pinned script to the consumer's `package.json`:
+
+   ```json
+   "scripts": {
+     "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.1.0"
+   }
+   ```
+
+   It is a script, not a dev dependency, because as a dependency every `npm ci` would need the token, including deploy builds and Dependabot. The version pin lives in this one line; to update, bump it.
+
+5. From the consumer repo root, run the installer:
+
+   ```sh
+   npm run ai-toolkit -- install
+   ```
+
+   On success it prints `installed @remekgdansk/ai-toolkit-example@0.1.0 (2 files)`, the command to invoke the skill, and a reminder to reload plugins. It exits 0.
+
+When the token expires, create a new one and re-run the `npm login` command.
+
+## Install in CI
+
+This setup assumes the consumer repo runs Dependabot, and the job below is skipped on Dependabot's pull requests. If your repo doesn't use Dependabot, drop the `dependabot[bot]` condition from the `if`.
+
+Use a second classic token with only `read:packages`, stored as the Actions secret `GH_PKG_TOKEN`. Create the secret with:
+
+```sh
+gh secret set GH_PKG_TOKEN --repo <owner>/<repo>
+```
+
+It reads the value from the prompt. Never pass the token on the command line.
+
+Run the install in its own job, not in a required check:
+
+```yaml
+ai-toolkit:
+  runs-on: ubuntu-latest
+  if: >-
+    github.event_name == 'push' ||
+    (github.event_name == 'pull_request' &&
+    github.event.pull_request.user.login != 'dependabot[bot]' &&
+    github.event.pull_request.head.repo.full_name == github.repository)
+  permissions:
+    contents: read
+  steps:
+    - uses: actions/checkout@v<x> # pin to a commit SHA if your repo requires it
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@v<x>
+      with:
+        node-version-file: .nvmrc
+        registry-url: https://npm.pkg.github.com
+        scope: "@remekgdansk"
+        package-manager-cache: false
+    - name: Secret present
+      env:
+        GH_PKG_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
+      run: |
+        if [ -z "$GH_PKG_TOKEN" ]; then
+          echo "::error::GH_PKG_TOKEN is not set. Add a classic token with only read:packages as the Actions secret GH_PKG_TOKEN."
+          exit 1
+        fi
+    - name: Install
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
+      run: npm run ai-toolkit -- install
+```
+
+- `setup-node` with `registry-url` and `scope` writes a runner-only npmrc outside the checkout that reads `NODE_AUTH_TOKEN`, so the committed `.npmrc` stays token-free.
+- The job sets `NODE_AUTH_TOKEN` from the secret, and passes the secret to steps only through `env:`.
+- The job needs no `npm ci` and no cache: `npx` fetches the pinned package. `package-manager-cache: false` matters because `setup-node` turns npm caching on by itself when `package.json` has a `packageManager` field. `persist-credentials: false` keeps the checkout's git token off disk, since nothing in the job pushes.
+- To enforce the token-free `.npmrc`, add a step before the install that fails when `.npmrc` is not exactly the scope line, or when `git grep -lE '_auth(Token)?=|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}'` matches a tracked file. Where a token has `=` or an alphanumeric, these patterns have `(` or `[`, so they never match their own text in the workflow file. `-l` prints only file names, so a leaked token never reaches the log.
+- The `if` skips Dependabot PRs and PRs from forks. They don't receive Actions secrets, so the job would always fail there. Dependabot PRs still run your other checks, and Dependabot itself needs no registry token, because the toolkit is not a dependency.
+
+The CI token expires too. Before it does, create a new classic `read:packages` token and run `gh secret set GH_PKG_TOKEN --repo <owner>/<repo>` again. Otherwise the job turns red on the expiry date.
+
+## Install from a local build
+
+For developing the toolkit, install it from a tarball instead of the registry.
+
 1. In this repo, build the tarball:
 
    ```sh
@@ -28,7 +128,7 @@ Install is an explicit command, not a `postinstall` script. Requires Node 22 or 
    npx ai-toolkit-example install
    ```
 
-   On success it prints the installed version and file count, the command to invoke the skill, and a reminder to reload plugins. It exits 0.
+   It prints and exits as in the registry install.
 
 ## Use in Claude Code
 
@@ -51,7 +151,7 @@ Nothing else in the consumer repo is touched. Other skills in `.claude/skills/` 
 
 ## Re-running
 
-Running `npx ai-toolkit-example install` again is safe. With the same package version it exits 0 and leaves every file unchanged.
+Running `npm run ai-toolkit -- install` again is safe. With the same package version it exits 0 and leaves every file unchanged.
 
 Install exits 1 in the cases below. It checks all but the last before its first write, so in those cases nothing is written:
 
@@ -64,7 +164,15 @@ Install exits 1 in the cases below. It checks all but the last before its first 
 | `unexpected error: ...` | Fix the reported problem (for example, file permissions), then re-run. |
 | `install failed while writing files: ...` | Re-run install. It reports anything left in an unexpected state. |
 
-An unknown command, or any argument after `install`, exits 2 and prints the usage. `npx ai-toolkit-example --help` prints the usage and exits 0.
+An unknown command, or any argument after `install`, exits 2 and prints the usage. `npm run ai-toolkit -- --help` prints the usage and exits 0.
+
+npm can fail before the installer runs. Then nothing is written either:
+
+| Message | Remedy |
+| --- | --- |
+| `npm error code E401` and `npm error 401 Unauthorized - GET https://npm.pkg.github.com/@remekgdansk%2fai-toolkit-example - authentication token not provided` | The token is missing, lacks `read:packages`, has expired or was revoked. Locally, create a new token and re-run the `npm login` command. In CI, replace the `GH_PKG_TOKEN` secret. |
+| `npm error code ETARGET` and `npm error notarget No matching version found for @remekgdansk/ai-toolkit-example@<version>.` | The pinned version is not published. Check the published versions with `npm view @remekgdansk/ai-toolkit-example versions` or on the package's GitHub Packages page, then fix the version in the `ai-toolkit` script. |
+| `npm error code E404` and `npm error 404 Not Found - GET https://npm.pkg.github.com/@remekgdansk%2f<name> - npm package "<name>" does not exist under owner "remekgdansk"` | The package name in the `ai-toolkit` script is misspelled. Fix it to `@remekgdansk/ai-toolkit-example`. |
 
 ## Releasing
 
