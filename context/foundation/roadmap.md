@@ -111,7 +111,7 @@ None. Each cross-cutting element (package metadata, registry config, test harnes
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** This is the full distribution loop and the milestone's validation point; the risk is token handling (the registry requires a token even for a public package), so the "no token in committed files" guardrail must be verified here.
-- **Status:** planning
+- **Status:** in-progress
 
 ### S-04: Safe repo refresh
 
