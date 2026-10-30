@@ -1,10 +1,10 @@
 ---
 change_id: safe-repo-refresh
 title: Safe repo refresh
-status: impl_reviewed
+status: archived
 created: 2026-10-30
 updated: 2026-10-30
-archived_at: null
+archived_at: 2026-10-30T22:39:04Z
 ---
 
 ## Notes
