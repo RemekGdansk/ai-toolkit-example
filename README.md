@@ -65,3 +65,37 @@ Install exits 1 in the cases below. It checks all but the last before its first 
 | `install failed while writing files: ...` | Re-run install. It reports anything left in an unexpected state. |
 
 An unknown command, or any argument after `install`, exits 2 and prints the usage. `npx ai-toolkit-example --help` prints the usage and exits 0.
+
+## Releasing
+
+The package is published to GitHub Packages as `@remekgdansk/ai-toolkit-example` by the `Publish AI Toolkit` workflow. Pull requests and pushes to `main` only run the checks. Publishing happens only when a GitHub Release is published whose tag is `v` followed by the `package.json` version.
+
+1. On a branch, bump the version. This updates `package.json` and `package-lock.json`:
+
+   ```sh
+   npm version <x.y.z> --no-git-tag-version
+   ```
+
+2. Open a pull request and merge it once the checks are green.
+
+3. Cut the release from `main`, not marked as a pre-release:
+
+   ```sh
+   gh release create v<x.y.z> --target main --generate-notes
+   ```
+
+   The workflow checks the tag, builds, tests and packs the tarball, then publishes that tarball.
+
+If the release run fails:
+
+| Failure | Remedy |
+| --- | --- |
+| `Release tag '<tag>' does not match package.json version '<version>'` | Delete the release and its tag, then fix the version (bump, merge) or cut the release with the right tag. |
+| `Release <tag> is marked as a pre-release` | Delete the pre-release and cut a normal release. Pre-releases are not published. |
+| `E409` / `Cannot publish over existing version` | That version is already published and cannot be replaced. Bump the version, merge, and cut a new release. |
+
+To delete a bad release and its tag:
+
+```sh
+gh release delete <tag> --cleanup-tag --yes
+```
