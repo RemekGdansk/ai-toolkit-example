@@ -42,7 +42,7 @@ The author wants to learn the shared-registry distribution pattern: packaging th
 | ID   | Change ID                   | Outcome (user can …)                                                                                       | Prerequisites | PRD refs                                          | Status   |
 | ---- | --------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------- | -------- |
 | S-01 | local-install-claude-code   | install the toolkit into `critical-path` with one command and see its skill in Claude Code, in a toolkit-named subfolder | —             | FR-003, FR-004, FR-006, NFR-install-idempotent, US-01 | done        |
-| S-02 | publish-on-release          | cut a version release and have CI publish it to the registry, with a visible failure for a reused version  | —             | FR-001, FR-002                                    | planning |
+| S-02 | publish-on-release          | cut a version release and have CI publish it to the registry, with a visible failure for a reused version  | —             | FR-001, FR-002                                    | in-progress |
 | S-03 | install-from-registry       | install a CI-published version into `critical-path`, locally and in its CI, with no token in committed files | S-01, S-02    | FR-003, FR-004, US-01                             | proposed |
 | S-04 | safe-repo-refresh           | ask Claude Code in `critical-path` to refresh the repo and delete only branches whose work is already in main, after confirming | S-01          | FR-011, US-01, NFR-no-unmerged-work-lost          | proposed |
 | S-05 | clean-uninstall             | run the uninstall command and get `critical-path` back exactly as it was before install                    | S-01          | FR-008, FR-006                                    | proposed |
@@ -99,7 +99,7 @@ None. Each cross-cutting element (package metadata, registry config, test harnes
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Independent of the installer, so it can run alongside S-01 and keep the north star close; the main risk is publish credentials leaking beyond the workflow-scoped credential required by Access Control.
-- **Status:** planning
+- **Status:** in-progress
 
 ### S-03: Install from the registry (north star)
 

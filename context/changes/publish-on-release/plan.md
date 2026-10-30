@@ -255,13 +255,13 @@ None. Nothing has been published yet, and `0.1.0` is the first registry version.
 
 #### Automated
 
-- [ ] 1.1 Tests and build pass: `npm test`
-- [ ] 1.2 Lockfile is in sync and installs cleanly
-- [ ] 1.3 Package metadata points at GitHub Packages
-- [ ] 1.4 Packed tarball contains the CLI and the plugin files
-- [ ] 1.5 Every action in the workflow is pinned to a full SHA
-- [ ] 1.6 The workflow never interpolates release payload into a script
-- [ ] 1.7 Plugin still validates locally: `npm run validate:plugin`
+- [x] 1.1 Tests and build pass: `npm test`
+- [x] 1.2 Lockfile is in sync and installs cleanly
+- [x] 1.3 Package metadata points at GitHub Packages
+- [x] 1.4 Packed tarball contains the CLI and the plugin files
+- [x] 1.5 Every action in the workflow is pinned to a full SHA
+- [x] 1.6 The workflow never interpolates release payload into a script
+- [x] 1.7 Plugin still validates locally: `npm run validate:plugin`
 
 #### Manual
 

@@ -1,7 +1,7 @@
 ---
 change_id: publish-on-release
 title: Publish on release
-status: planned
+status: implementing
 created: 2026-10-30
 updated: 2026-10-30
 archived_at: null

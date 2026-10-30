@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "description": "Installs the author's AI-agent skills into a consumer repo as a Claude Code skills-directory plugin.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RemekGdansk/ai-toolkit-example.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "type": "module",
   "bin": {
     "ai-toolkit-example": "dist/cli.js"
