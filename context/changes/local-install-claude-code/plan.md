@@ -307,14 +307,14 @@ None. No consumer has an earlier version installed.
 
 #### Automated
 
-- [x] 3.1 Tarball is produced
-- [x] 3.2 Install in critical-path succeeds
-- [x] 3.3 Re-install is a no-op
-- [x] 3.4 Existing consumer skills are untouched
-- [x] 3.5 Claude Code sees the plugin
+- [x] 3.1 Tarball is produced — ad57957
+- [x] 3.2 Install in critical-path succeeds — ad57957
+- [x] 3.3 Re-install is a no-op — ad57957
+- [x] 3.4 Existing consumer skills are untouched — ad57957
+- [x] 3.5 Claude Code sees the plugin — ad57957
 
 #### Manual
 
-- [x] 3.6 In Claude Code, /reload-plugins then /ai-toolkit-example:repo-refresh runs the skeleton and deletes nothing
-- [x] 3.7 critical-path's package.json and package-lock.json are reverted, and git status there is clean
-- [x] 3.8 Following README.md literally reproduces the install
+- [x] 3.6 In Claude Code, /reload-plugins then /ai-toolkit-example:repo-refresh runs the skeleton and deletes nothing — ad57957
+- [x] 3.7 critical-path's package.json and package-lock.json are reverted, and git status there is clean — ad57957
+- [x] 3.8 Following README.md literally reproduces the install — ad57957
