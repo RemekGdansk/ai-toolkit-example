@@ -296,25 +296,25 @@ None. No consumer has an earlier version installed.
 
 #### Automated
 
-- [x] 2.1 Type check and build are clean
-- [x] 2.2 All installer scenarios pass
+- [x] 2.1 Type check and build are clean — fdf17eb
+- [x] 2.2 All installer scenarios pass — fdf17eb
 
 #### Manual
 
-- [x] 2.3 Conflict and local-edit error messages name every offending path and say what to do next
+- [x] 2.3 Conflict and local-edit error messages name every offending path and say what to do next — fdf17eb
 
 ### Phase 3: End-to-end check in critical-path
 
 #### Automated
 
-- [ ] 3.1 Tarball is produced
-- [ ] 3.2 Install in critical-path succeeds
-- [ ] 3.3 Re-install is a no-op
-- [ ] 3.4 Existing consumer skills are untouched
-- [ ] 3.5 Claude Code sees the plugin
+- [x] 3.1 Tarball is produced
+- [x] 3.2 Install in critical-path succeeds
+- [x] 3.3 Re-install is a no-op
+- [x] 3.4 Existing consumer skills are untouched
+- [x] 3.5 Claude Code sees the plugin
 
 #### Manual
 
-- [ ] 3.6 In Claude Code, /reload-plugins then /ai-toolkit-example:repo-refresh runs the skeleton and deletes nothing
-- [ ] 3.7 critical-path's package.json and package-lock.json are reverted, and git status there is clean
-- [ ] 3.8 Following README.md literally reproduces the install
+- [x] 3.6 In Claude Code, /reload-plugins then /ai-toolkit-example:repo-refresh runs the skeleton and deletes nothing
+- [x] 3.7 critical-path's package.json and package-lock.json are reverted, and git status there is clean
+- [x] 3.8 Following README.md literally reproduces the install
