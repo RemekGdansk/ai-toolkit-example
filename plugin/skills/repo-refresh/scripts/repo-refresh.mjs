@@ -13,7 +13,7 @@
  * 2 usage error.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -200,6 +200,8 @@ function preconditions() {
     ["rebase-merge", "a rebase"],
     ["rebase-apply", "a rebase or git am"],
     ["CHERRY_PICK_HEAD", "a cherry-pick"],
+    ["REVERT_HEAD", "a revert"],
+    ["sequencer", "a cherry-pick or revert sequence"],
     ["BISECT_LOG", "a bisect"],
   ];
   const paths = git(["rev-parse", ...markers.flatMap(([name]) => ["--git-path", name])]).split("\n");
@@ -222,15 +224,55 @@ function readRepo() {
 
   /** @type {Map<string, string>} */
   const worktreeBranches = new Map();
+  /** @type {string[]} */
+  const worktreePaths = [];
   let worktreePath = "";
   for (const field of git(["worktree", "list", "--porcelain", "-z"]).split("\0")) {
     if (field.startsWith("worktree ")) {
       worktreePath = field.slice("worktree ".length);
+      worktreePaths.push(worktreePath);
     } else if (field.startsWith("branch refs/heads/")) {
       worktreeBranches.set(field.slice("branch refs/heads/".length), worktreePath);
     }
   }
+
+  // A rebase or bisect detaches HEAD, so the list above shows that worktree as `detached`.
+  // The branch it is working on is still in use there: treat it as checked out.
+  for (const worktree of worktreePaths) {
+    const gitDir = runGit(["-C", worktree, "rev-parse", "--absolute-git-dir"]);
+    if (gitDir.error !== undefined || gitDir.status !== 0) continue;
+    for (const [file, operation] of IN_PROGRESS_BRANCH_FILES) {
+      const branch = inProgressBranch(path.join(gitDir.stdout.trim(), file));
+      if (branch !== null && !worktreeBranches.has(branch)) {
+        worktreeBranches.set(branch, `${worktree} (${operation} in progress)`);
+      }
+    }
+  }
   return { currentBranch, worktreeBranches };
+}
+
+/** Files in a worktree's git dir that name the branch an in-progress operation detached from. */
+const IN_PROGRESS_BRANCH_FILES = /** @type {const} */ ([
+  ["rebase-merge/head-name", "rebase"],
+  ["rebase-apply/head-name", "rebase"],
+  ["BISECT_START", "bisect"],
+]);
+
+/**
+ * The branch named in an in-progress state file, or null when the file is absent or names no branch.
+ * head-name holds `refs/heads/<branch>` (or `detached HEAD`); BISECT_START holds the branch name or a SHA.
+ * @param {string} file
+ * @returns {string | null}
+ */
+function inProgressBranch(file) {
+  let content;
+  try {
+    content = readFileSync(file, "utf8").trim();
+  } catch {
+    return null;
+  }
+  if (content.startsWith("refs/heads/")) return content.slice("refs/heads/".length);
+  return path.basename(file) === "BISECT_START" && content !== "" ? content : null;
 }
 
 /**
@@ -270,7 +312,12 @@ function updateMain(repo, warnings) {
   const merge = runGit(["config", "--get", `branch.${MAIN}.merge`]).stdout.trim();
   if (remote === "" || merge === "") return notUpdated("main has no upstream", true);
 
-  const fetch = runGit(["-c", "credential.interactive=never", "fetch", "--prune", remote], {
+  const refspecs = runGit(["config", "--get-all", `remote.${remote}.fetch`]).stdout.split("\n");
+  if (refspecs.some(fetchesIntoLocalBranches)) {
+    return notUpdated(`a fetch refspec of ${remote} writes to local branches, so fetch --prune could delete them`, true);
+  }
+
+  const fetch =runGit(["-c", "credential.interactive=never", "fetch", "--prune", remote], {
     env: { GIT_TERMINAL_PROMPT: "0" },
     timeout: FETCH_TIMEOUT_MS,
   });
@@ -291,7 +338,8 @@ function updateMain(repo, warnings) {
   if (!gitYesNo(["merge-base", "--is-ancestor", from, to])) return notUpdated(`main has diverged from ${upstream}`, true);
 
   if (repo.currentBranch === MAIN) {
-    const ff = runGit(["merge", "--ff-only", "--quiet", to]);
+    // --no-autostash: with merge.autoStash set, git would stash dirty files and could leave conflicts.
+    const ff = runGit(["merge", "--ff-only", "--no-autostash", "--quiet", to]);
     if (ff.error !== undefined || ff.status !== 0) {
       return notUpdated(`git merge --ff-only ${upstream} failed (${describeFailure(ff)})`, true);
     }
@@ -305,6 +353,21 @@ function updateMain(repo, warnings) {
   }
   const now = git(["rev-parse", "--verify", `${MAIN_REF}^{commit}`]);
   return { updated: now !== from, from, to: now, note: `updated ${short(from)}..${short(now)}` };
+}
+
+/**
+ * True when a fetch refspec's destination can include refs/heads/, as in `+refs/heads/*:refs/heads/*` or a
+ * fetch mirror's `+refs/*:refs/*`. With --prune, such a fetch deletes local branches the remote does not have.
+ * @param {string} refspec
+ * @returns {boolean}
+ */
+function fetchesIntoLocalBranches(refspec) {
+  const colon = refspec.indexOf(":");
+  if (colon === -1) return false;
+  const destination = refspec.slice(colon + 1);
+  if (destination.startsWith("refs/heads/")) return true;
+  const star = destination.indexOf("*");
+  return star !== -1 && "refs/heads/".startsWith(destination.slice(0, star));
 }
 
 // ---------------------------------------------------------------------------
@@ -354,6 +417,16 @@ function classify(repo, main) {
       candidate(gone ? "merged into main; upstream gone" : "merged into main");
       continue;
     }
+    // 5b: no net change against its merge-base (e.g. a file added then removed, or only empty
+    // commits) also makes rule 6 match, without the branch ever having been merged: keep it.
+    if (hasNoNetChange(main.sha, sha)) {
+      keep(
+        gone
+          ? "no net changes against main (never merged); upstream gone, not enough on its own"
+          : "no net changes against main (never merged)",
+      );
+      continue;
+    }
     // 6: merging it into main would produce main's own tree = its changes are already in main.
     const mergeTree = runGit(["merge-tree", "--write-tree", "--no-messages", main.sha, sha]);
     if (mergeTree.error === undefined && mergeTree.status === 0 && mergeTree.stdout.split("\n")[0] === main.tree) {
@@ -369,6 +442,22 @@ function classify(repo, main) {
   }
 
   return stashPass({ candidates, kept });
+}
+
+/**
+ * True when `sha` has the same tree as its merge-base with main, i.e. the branch changes nothing.
+ * Any git failure returns false, leaving the branch to rules 6-7.
+ * @param {string} mainSha
+ * @param {string} sha
+ * @returns {boolean}
+ */
+function hasNoNetChange(mainSha, sha) {
+  const base = runGit(["merge-base", mainSha, sha]);
+  if (base.error !== undefined || base.status !== 0) return false;
+  const trees = runGit(["rev-parse", `${base.stdout.trim()}^{tree}`, `${sha}^{tree}`]);
+  if (trees.error !== undefined || trees.status !== 0) return false;
+  const [baseTree, tipTree] = trees.stdout.trim().split("\n");
+  return baseTree !== undefined && baseTree === tipTree;
 }
 
 /**
@@ -490,8 +579,15 @@ function deleteBranches(args) {
       refuse(branch, `not a deletion candidate: ${keptEntry?.reason ?? "kept"}`);
       continue;
     }
+    // Re-read the tip right before deleting: -D removes whatever the branch points at by then.
+    const now = runGit(["rev-parse", "--verify", "--quiet", `refs/heads/${branch}^{commit}`]).stdout.trim();
+    if (now !== candidate.sha) {
+      refuse(branch, `its tip moved during delete (now ${now === "" ? "gone" : short(now)}); run plan again`);
+      continue;
+    }
     // -D, not -d: a squash-merged branch is not an ancestor of main, so -d would refuse it.
-    const result = runGit(["branch", "-D", branch]);
+    // `--`: a branch name starting with `-` must not be read as an option.
+    const result = runGit(["branch", "-D", "--", branch]);
     if (result.error !== undefined || result.status !== 0) {
       refuse(branch, `git branch -D failed: ${describeFailure(result)}`);
       continue;
