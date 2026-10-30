@@ -289,29 +289,29 @@ The `ai-toolkit` job skips `npm ci` and browser installs. It only downloads the 
 
 #### Automated
 
-- [x] 2.1 Every `uses:` is SHA-pinned
-- [x] 2.2 The secret is read only through `env:`
-- [x] 2.3 The hygiene step passes on the clean branch
-- [x] 2.4 The PR's `ai-toolkit` job is green with install and unchanged second install in its log
-- [x] 2.5 `ci` and `Workers Builds: critical-path` are green on the PR
-- [x] 2.6 After the squash merge, `ai-toolkit` on `main` is green and Workers Builds deploys `main`
+- [x] 2.1 Every `uses:` is SHA-pinned — aa3f600
+- [x] 2.2 The secret is read only through `env:` — aa3f600
+- [x] 2.3 The hygiene step passes on the clean branch — aa3f600
+- [x] 2.4 The PR's `ai-toolkit` job is green with install and unchanged second install in its log — aa3f600
+- [x] 2.5 `ci` and `Workers Builds: critical-path` are green on the PR — aa3f600
+- [x] 2.6 After the squash merge, `ai-toolkit` on `main` is green and Workers Builds deploys `main` — aa3f600
 
 #### Manual
 
-- [x] 2.7 A throwaway token commit turns "Token hygiene" red and is reverted before merge
-- [x] 2.8 "Secret present" message and job-level `if` reviewed; Dependabot skip observed or recorded as not yet observed
-- [x] 2.9 The merged squash commit on `main` has no token in its diff
-- [x] 2.10 Dependabot's npm update job runs without a registry error after the merge, or is recorded as not yet observed
+- [x] 2.7 A throwaway token commit turns "Token hygiene" red and is reverted before merge — aa3f600
+- [x] 2.8 "Secret present" message and job-level `if` reviewed; Dependabot skip observed or recorded as not yet observed — aa3f600
+- [x] 2.9 The merged squash commit on `main` has no token in its diff — aa3f600
+- [x] 2.10 Dependabot's npm update job runs without a registry error after the merge, or is recorded as not yet observed — aa3f600
 
 ### Phase 3: Toolkit README for the registry path
 
 #### Automated
 
-- [ ] 3.1 Toolkit checks still pass: `npm test`
-- [ ] 3.2 The README names the registry command and the scope line
-- [ ] 3.3 The README shows no literal token
+- [x] 3.1 Toolkit checks still pass: `npm test`
+- [x] 3.2 The README names the registry command and the scope line
+- [x] 3.3 The README shows no literal token
 
 #### Manual
 
-- [ ] 3.4 Following only the README matches what was done in `critical-path`
-- [ ] 3.5 The `E401` row quotes the message observed in Phase 1
+- [x] 3.4 Following only the README matches what was done in `critical-path`
+- [x] 3.5 The `E401` row quotes the message observed in Phase 1
