@@ -1,7 +1,7 @@
 ---
 change_id: clean-uninstall
 title: Clean uninstall
-status: new
+status: planned
 created: 2026-10-30
 updated: 2026-10-30
 archived_at: null
