@@ -29,7 +29,7 @@ Verify with the fixture suite (`npm test`), a scratch-repo walkthrough in Claude
 
 - In a scratch repo (git 2.56), patch-id matching (`git cherry`) still reported a squash-merged branch as "in main" after `main` reverted the squash; `git merge-tree --write-tree main <branch>` correctly returned a tree different from `main`'s. The merge-tree check is the deletion predicate.
 - A branch tip that is an ancestor of `main` covers three different cases: a freshly created branch, a fast-forward-merged branch and a regular-merged branch. Only the first two sit on `main`'s first-parent history; a regular merge's tip sits on a side parent. The rule order below depends on this.
-- An `allowed-tools` rule for `plan` only lets the read-only-in-effect `plan` command run without a permission prompt while `delete` still goes through the normal prompt. Whether `${CLAUDE_SKILL_DIR}` expands inside that rule is unverified; Phase 2 tests it first (see Phase 2 §3).
+- An `allowed-tools` rule for `plan` only lets the read-only-in-effect `plan` command run without a permission prompt while `delete` still goes through the normal prompt. Whether `${CLAUDE_SKILL_DIR}` expands inside that rule was unverified at planning time; Phase 2 tested it first and it does expand (see Implementation Notes).
 
 ## What We're NOT Doing
 
@@ -348,6 +348,23 @@ Consumers on `0.1.0` get the new skill by bumping their pinned version and re-ru
 - Release workflow tarball check: `.github/workflows/publish-ai-toolkit.yml`
 - Consumer pin decision: `context/archive/2026-10-30-install-from-registry/plan-brief.md`
 - Claude Code skill substitutions (`${CLAUDE_SKILL_DIR}`, `allowed-tools`): https://code.claude.com/docs/en/skills
+
+## Implementation Notes
+
+Recorded after implementation (see `reviews/impl-review.md`).
+
+Deviations during Phases 1–3:
+- `${CLAUDE_SKILL_DIR}` expands inside `allowed-tools`. The exact rule `Bash(node ${CLAUDE_SKILL_DIR}/scripts/repo-refresh.mjs plan)` ships; the wildcard fallback was not needed.
+- SKILL.md does not rely on the author seeing tool output, which Claude Code collapses. The model copies the `Main`/`Delete`/`Keep`/`Warnings` sections unchanged into a fenced block and into the question text, and leaves out the `Delete command:` line.
+- Installer test 6 also asserts the exact installed paths, so it gained the script entry along with test 1.
+
+Fixes from the implementation review (ship as 0.2.1):
+- Rule 5b, before rule 6: a branch whose tip tree equals its merge-base tree with `main` (no net change, e.g. a file added and then removed, or only empty commits) is kept as "no net changes against main (never merged)". Rule 6 alone listed such branches as squash-merged. Test R16.
+- The fast-forward of a checked-out `main` uses `git merge --ff-only --no-autostash`, so `merge.autoStash` cannot stash the author's edits or leave conflicts. Test R17.
+- A branch named in `rebase-merge/head-name`, `rebase-apply/head-name` or `BISECT_START` of any worktree counts as checked out in that worktree, both for the `main` update and for rule 2. Test R18; D3's mid-rebase branch is now refused as kept, so no test exercises the `git branch -D failed` path any more.
+- `plan` skips the fetch with a warning when a fetch refspec of `main`'s remote can write under `refs/heads/`, because `--prune` would delete local branches. Test R19.
+- `delete` re-reads each branch tip right before `git branch -D -- <branch>` and refuses if the tip moved. Test D6 covers names starting with `-`.
+- The preconditions also refuse `REVERT_HEAD` and `sequencer`. Test R15 "a revert in progress".
 
 ## Progress
 

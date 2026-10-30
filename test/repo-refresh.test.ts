@@ -209,6 +209,68 @@ test("R2 on main with a clean tree: main is fast-forwarded", (t) => {
   assert.equal(git(fx.work, "status", "--porcelain"), "");
 });
 
+test("R17 on main with a dirty file the update would touch, even with merge.autoStash: warning, tree unchanged", (t) => {
+  const fx = makeFixture(t);
+  const localMain = git(fx.work, "rev-parse", "main");
+  advanceRemoteMain(fx, "base.txt");
+  git(fx.work, "config", "merge.autoStash", "true");
+  writeFileSync(path.join(fx.work, "base.txt"), "my uncommitted edit\n");
+
+  const report = plan(fx.work);
+
+  assert.equal(report.main.updated, false);
+  assert.ok(report.warnings.some((warning) => /merge --ff-only/.test(warning)), report.warnings.join("\n"));
+  assert.equal(git(fx.work, "rev-parse", "refs/heads/main"), localMain);
+  assert.equal(readFileSync(path.join(fx.work, "base.txt"), "utf8"), "my uncommitted edit\n");
+  assert.equal(git(fx.work, "status", "--porcelain"), "M base.txt");
+  assert.equal(git(fx.work, "stash", "list"), "");
+});
+
+test("R18 main mid-rebase in another worktree: warning, main unchanged, the rebase is left intact", (t) => {
+  const fx = makeFixture(t);
+  const initial = git(fx.work, "rev-parse", "main");
+  const localMain = commit(fx.work, "conflict.txt", "main\n", "main adds conflict.txt");
+  git(fx.work, "push", "-q", "origin", "main");
+  git(fx.work, "checkout", "-q", "-b", "side", initial);
+  commit(fx.work, "conflict.txt", "side\n", "side adds conflict.txt");
+  git(fx.work, "checkout", "-q", "-b", "work", initial);
+  advanceRemoteMain(fx);
+  const wt = path.join(fx.root, "wt");
+  git(fx.work, "worktree", "add", "-q", wt, "main");
+  assert.notEqual(gitRaw(wt, ["rebase", "side"]).status, 0, "rebase stops on a conflict");
+
+  const report = plan(fx.work);
+
+  assert.equal(report.main.updated, false);
+  assert.ok(
+    report.warnings.some((warning) => /main is checked out in worktree .*\(rebase in progress\)/.test(warning)),
+    report.warnings.join("\n"),
+  );
+  assert.equal(git(fx.work, "rev-parse", "refs/heads/main"), localMain);
+  assert.equal(gitRaw(wt, ["rebase", "--abort"]).status, 0);
+  assert.equal(git(wt, "branch", "--show-current"), "main");
+});
+
+test("R19 a fetch refspec into refs/heads/: no fetch, warning, unpushed branches survive", async (t) => {
+  for (const refspec of ["+refs/heads/*:refs/heads/*", "+refs/*:refs/*"]) {
+    await t.test(refspec, (t) => {
+      const fx = makeFixture(t);
+      const localMain = git(fx.work, "rev-parse", "main");
+      git(fx.work, "config", "--add", "remote.origin.fetch", refspec);
+      const unpushed = branchWithCommits(fx.work, "unpushed-work", ["u.txt"]);
+      advanceRemoteMain(fx);
+      git(fx.work, "checkout", "-q", "--detach", "main");
+
+      const report = plan(fx.work);
+
+      assert.equal(report.main.updated, false);
+      assert.ok(report.warnings.some((warning) => /writes to local branches/.test(warning)), report.warnings.join("\n"));
+      assert.equal(tip(fx.work, "unpushed-work"), unpushed);
+      assert.equal(git(fx.work, "rev-parse", "refs/heads/main"), localMain);
+    });
+  }
+});
+
 test("R3 local main diverged from the remote: warning, main unchanged, classified against local main", (t) => {
   const fx = makeFixture(t);
   advanceRemoteMain(fx);
@@ -292,6 +354,33 @@ test("R8 a squash-merged branch whose squash main later reverted is kept", (t) =
   const report = plan(fx.work);
 
   assertKept(report, "feature", /has changes not in main/);
+});
+
+test("R16 a never-merged branch with no net change is kept, not listed as squash-merged", async (t) => {
+  await t.test("a file added and then removed", (t) => {
+    const fx = makeFixture(t);
+    git(fx.work, "checkout", "-q", "-b", "wip", "main");
+    commit(fx.work, "feature.txt", "feature work\n", "add feature");
+    git(fx.work, "rm", "-q", "feature.txt");
+    git(fx.work, "commit", "-q", "-m", "remove feature");
+    git(fx.work, "checkout", "-q", "main");
+
+    const report = plan(fx.work);
+
+    assertKept(report, "wip", /^no net changes against main \(never merged\)$/);
+  });
+
+  await t.test("only an empty commit", (t) => {
+    const fx = makeFixture(t);
+    git(fx.work, "checkout", "-q", "-b", "notes", "main");
+    git(fx.work, "commit", "-q", "--allow-empty", "-m", "WIP notes");
+    git(fx.work, "checkout", "-q", "main");
+    commit(fx.work, "later.txt", "later\n", "main moves on");
+
+    const report = plan(fx.work);
+
+    assertKept(report, "notes", /^no net changes against main \(never merged\)$/);
+  });
 });
 
 test("R9 a branch at a main commit: kept unless fast-forward merged with its upstream gone", (t) => {
@@ -464,6 +553,22 @@ test("R15 failed preconditions exit 1 with nothing changed; usage errors exit 2"
     assert.equal(git(fx.work, "status", "--porcelain"), before.status);
   });
 
+  await t.test("a revert in progress", (t) => {
+    const fx = makeFixture(t);
+    const first = commit(fx.work, "base.txt", "first change\n", "first edits base");
+    commit(fx.work, "base.txt", "second change\n", "second edits base");
+    assert.notEqual(gitRaw(fx.work, ["revert", "--no-edit", first]).status, 0, "revert stops on a conflict");
+    advanceRemoteMain(fx);
+    const before = { refs: refs(fx.work), status: git(fx.work, "status", "--porcelain") };
+
+    const result = runScript(fx.work, "plan", "--json");
+
+    assertExit(result, 1);
+    assert.match(result.stderr, /revert is in progress/);
+    assert.equal(refs(fx.work), before.refs);
+    assert.equal(git(fx.work, "status", "--porcelain"), before.status);
+  });
+
   await t.test("unknown subcommand and bad arguments", (t) => {
     const fx = makeFixture(t);
     const before = refs(fx.work);
@@ -574,7 +679,7 @@ test("D2 a branch that gained a commit after plan is refused and kept: exit 1", 
   assert.equal(tip(fx.work, "feature"), newTip);
 });
 
-test("D3 main, the checked-out branch, kept branches, a missing branch and a branch git refuses to delete are refused: exit 1", (t) => {
+test("D3 main, the checked-out branch, kept branches, a missing branch and a branch mid-rebase in another worktree are refused: exit 1", (t) => {
   const fx = makeFixture(t);
   const initial = git(fx.work, "rev-parse", "main");
   // A merged branch checked out here.
@@ -589,7 +694,7 @@ test("D3 main, the checked-out branch, kept branches, a missing branch and a bra
   writeFileSync(path.join(fx.work, "st.txt"), "stashed edit\n");
   git(fx.work, "stash", "-q");
   git(fx.work, "checkout", "-q", "main");
-  // A merged branch mid-rebase in another worktree (reported as detached, so classification sees a candidate).
+  // A merged branch mid-rebase in another worktree (reported as detached; kept via the rebase's head-name).
   git(fx.work, "checkout", "-q", "-b", "onto", initial);
   commit(fx.work, "rb.txt", "onto\n", "onto adds rb.txt");
   git(fx.work, "checkout", "-q", "main");
@@ -600,7 +705,7 @@ test("D3 main, the checked-out branch, kept branches, a missing branch and a bra
   assert.notEqual(gitRaw(wt, ["rebase", "onto"]).status, 0, "rebase stops on a conflict");
   git(fx.work, "checkout", "-q", "here");
   const report = plan(fx.work);
-  assert.ok(candidate(report, "rebasing"), JSON.stringify(report, null, 2));
+  assertKept(report, "rebasing", /^checked out in worktree .*\(rebase in progress\)$/);
   const before = refs(fx.work, "refs/heads/");
   const pair = (branch: string): string => `${branch}=${tip(fx.work, branch)}`;
 
@@ -623,7 +728,7 @@ test("D3 main, the checked-out branch, kept branches, a missing branch and a bra
   assert.match(sections.refused.get("unmerged") ?? "", /not a deletion candidate: has changes not in main/);
   assert.match(sections.refused.get("stashed") ?? "", /not a deletion candidate: holds the base of stash@\{0\}/);
   assert.match(sections.refused.get("missing") ?? "", /no such local branch/);
-  assert.match(sections.refused.get("rebasing") ?? "", /git branch -D failed/);
+  assert.match(sections.refused.get("rebasing") ?? "", /not a deletion candidate: checked out in worktree/);
   assert.equal(refs(fx.work, "refs/heads/"), before);
 });
 
@@ -651,6 +756,21 @@ test("D4 a mix of valid and refused pairs deletes only the valid ones", (t) => {
   assert.equal(branchExists(fx.work, "merged"), false);
   assert.equal(branchExists(fx.work, "squashed"), false);
   assert.equal(tip(fx.work, "unmerged"), unmergedTip);
+});
+
+test("D6 a merged candidate whose name starts with `-` is deleted, not read as an option", (t) => {
+  const fx = makeFixture(t);
+  const merged = branchWithCommits(fx.work, "merged", ["m.txt"]);
+  git(fx.work, "merge", "-q", "--no-ff", "-m", "merge merged", "merged");
+  git(fx.work, "update-ref", "refs/heads/-r", merged);
+  git(fx.work, "branch", "-q", "-D", "merged");
+  assertCandidate(plan(fx.work), "-r", /merged into main/);
+
+  const result = runScript(fx.work, "delete", `-r=${merged}`);
+
+  assertExit(result, 0);
+  assert.deepEqual(deleteSections(result.stdout).deleted, ["-r"]);
+  assert.equal(branchExists(fx.work, "-r"), false);
 });
 
 test("D5 malformed arguments exit 2 with nothing deleted, even next to valid pairs", (t) => {

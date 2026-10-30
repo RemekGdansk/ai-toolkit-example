@@ -141,7 +141,7 @@ Claude Code lists the plugin as `ai-toolkit-example@skills-dir`. You can also as
 
 The skill needs git 2.38 or later and `node` on your `PATH`. All git logic lives in a bundled script; Claude Code only runs it, shows its output and asks you. The flow:
 
-1. **Plan.** The script fetches `main`'s remote with `git fetch --prune` and fast-forwards local `main` without switching branches or touching your working tree. If it cannot (offline, no upstream, `main` diverged, or `main` checked out in another worktree), it warns and goes on with local `main`. It then lists every local branch under "Delete" or "Keep", each with a reason. A branch is listed for deletion when it was merged into `main`, squash-merged (merging it into `main` would change nothing), or fast-forward merged with its upstream gone.
+1. **Plan.** The script fetches `main`'s remote with `git fetch --prune` and fast-forwards local `main` without switching branches. Your working tree changes only when `main` is the checked-out branch, and then only through a clean fast-forward. If it cannot (offline, no upstream, `main` diverged, uncommitted changes the fast-forward would overwrite, or `main` checked out in another worktree), it warns and goes on with local `main`. It then lists every local branch under "Delete" or "Keep", each with a reason. A branch is listed for deletion when it was merged into `main`, squash-merged (merging it into `main` would change nothing), or fast-forward merged with its upstream gone.
 2. **Confirm.** Claude Code asks once: "Delete all listed", "Choose which to delete" or "Cancel".
 3. **Delete.** The script re-checks each chosen branch and deletes it only if it is still a candidate at the same commit you saw. Anything else is refused with a reason.
 
@@ -150,9 +150,10 @@ The skill never deletes:
 - `main`, the checked-out branch, or a branch checked out in another worktree;
 - a branch with changes that are not in `main`, including a squash-merged branch with a later commit or one whose squash `main` reverted;
 - a branch with no commits of its own, unless it was fast-forward merged and its upstream is gone;
+- a never-merged branch whose commits add up to no change (for example a file added and then removed, or only empty commits);
 - the last branch that holds a stash's base commit.
 
-It never pushes and never deletes remote branches. The only remote operation is the fetch. The script refuses to run, and changes nothing, outside a git work tree, without a local `main`, or while a merge, rebase, cherry-pick or bisect is in progress.
+It never pushes and never deletes remote branches. The only remote operation is the fetch. The script refuses to run, and changes nothing, outside a git work tree, without a local `main`, or while a merge, rebase, cherry-pick, revert or bisect is in progress.
 
 ## What gets written
 
