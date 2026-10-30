@@ -369,21 +369,21 @@ Consumers on `0.1.0` get the new skill by bumping their pinned version and re-ru
 
 #### Automated
 
-- [x] 2.1 Full test suite passes, including D1–D5
-- [x] 2.2 Plugin validates strictly
-- [x] 2.3 SKILL.md references the script only through ${CLAUDE_SKILL_DIR} and drops the preview wording
+- [x] 2.1 Full test suite passes, including D1–D5 — 8511285
+- [x] 2.2 Plugin validates strictly — 8511285
+- [x] 2.3 SKILL.md references the script only through ${CLAUDE_SKILL_DIR} and drops the preview wording — 8511285
 
 #### Manual
 
-- [x] 2.4 Scratch repo: skill runs plan without a prompt, shows the lists, and "Choose" deletes only the chosen branches
-- [x] 2.5 Scratch repo: "Cancel" deletes nothing and the author stays on their branch
+- [x] 2.4 Scratch repo: skill runs plan without a prompt, shows the lists, and "Choose" deletes only the chosen branches — 8511285
+- [x] 2.5 Scratch repo: "Cancel" deletes nothing and the author stays on their branch — 8511285
 
 ### Phase 3: Release 0.2.0 and verify in critical-path
 
 #### Automated
 
-- [ ] 3.1 Test suite passes with the bumped versions
-- [ ] 3.2 Packed tarball contains the script
+- [x] 3.1 Test suite passes with the bumped versions
+- [x] 3.2 Packed tarball contains the script
 - [ ] 3.3 Release run for v0.2.0 succeeds through the publish job
 - [ ] 3.4 critical-path ai-toolkit CI job passes on the repoint PR
 

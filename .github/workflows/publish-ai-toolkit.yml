@@ -63,7 +63,8 @@ jobs:
           for entry in \
             package/dist/cli.js \
             package/plugin/.claude-plugin/plugin.json \
-            package/plugin/skills/repo-refresh/SKILL.md; do
+            package/plugin/skills/repo-refresh/SKILL.md \
+            package/plugin/skills/repo-refresh/scripts/repo-refresh.mjs; do
             if ! grep -qxF "$entry" <<< "$contents"; then
               echo "::error::$tarball is missing $entry"
               missing=1
