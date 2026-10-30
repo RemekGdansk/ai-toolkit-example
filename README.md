@@ -59,8 +59,9 @@ Install exits 1 in the cases below. It checks all but the last before its first 
 | --- | --- |
 | `no package.json in <dir>; run from the consumer repo root` | `cd` to the consumer repo root and re-run. |
 | `these installed files were changed after install:` | Revert your edits to the listed files (keep a copy elsewhere if you need them), then re-run. |
-| `these paths already exist and are not managed by ai-toolkit-example:` | Move or delete the listed paths, then re-run. This includes `.claude/skills/ai-toolkit-example/` when there is no manifest. |
+| `these paths already exist and are not managed by ai-toolkit-example:` | Move or delete the listed paths, then re-run. This includes `.claude/skills/ai-toolkit-example/` when there is no manifest, and a `.claude`, `.claude/skills` or manifest that is a symlink. |
 | `.claude/.ai-toolkit-example-manifest.json` cannot be read, is not valid JSON, is invalid, or belongs to another package | Restore the manifest to the file install wrote, or delete it together with `.claude/skills/ai-toolkit-example/`, then re-run. |
+| `unexpected error: ...` | Fix the reported problem (for example, file permissions), then re-run. |
 | `install failed while writing files: ...` | Re-run install. It reports anything left in an unexpected state. |
 
-An unknown command exits 2 and prints the usage. `npx ai-toolkit-example --help` prints the usage and exits 0.
+An unknown command, or any argument after `install`, exits 2 and prints the usage. `npx ai-toolkit-example --help` prints the usage and exits 0.

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -158,7 +158,7 @@ test("5. a locally edited installed file blocks re-install and the edit is prese
   assertExit(run(root, "install"), 0);
   const edited = "---\nname: repo-refresh\n---\nmy local edit\n";
   writeFileSync(at(root, SKILL_MD), edited);
-  const manifestBefore = readFileSync(at(root, MANIFEST));
+  const before = hashTree(root);
 
   const result = run(root, "install");
 
@@ -166,7 +166,7 @@ test("5. a locally edited installed file blocks re-install and the edit is prese
   assert.ok(result.stderr.includes(SKILL_MD), result.stderr);
   assert.match(result.stderr, /revert/);
   assert.equal(readFileSync(at(root, SKILL_MD), "utf8"), edited);
-  assert.deepEqual(readFileSync(at(root, MANIFEST)), manifestBefore);
+  assert.equal(hashTree(root), before);
 });
 
 test("6. a managed file no longer shipped is removed with its now-empty created folder", (t) => {
@@ -232,11 +232,177 @@ test("9. plugin.json version equals package.json version", () => {
   assert.equal(plugin.version, pkg.version);
 });
 
-test("10. an unknown subcommand exits 2", (t) => {
+test("10. an unknown subcommand or an extra argument to install exits 2", (t) => {
   const root = makeConsumer(t);
 
   const result = run(root, "bogus");
 
   assertExit(result, 2);
   assert.match(result.stderr, /unknown command "bogus"/);
+
+  const extra = run(root, "install", "--help");
+
+  assertExit(extra, 2);
+  assert.match(extra.stderr, /unexpected argument "--help"/);
+  assert.ok(!existsSync(at(root, ".claude")), "nothing installed");
+});
+
+test("11. a manifest pointing outside the plugin folder exits 1 and writes nothing", (t) => {
+  const settings = ".claude/settings.json";
+  const settingsContent = '{"permissions":{}}\n';
+  const cases: { name: string; files: { path: string; sha256: string }[]; createdDirs: string[] }[] = [
+    { name: "consumer file in .claude", files: [{ path: settings, sha256: sha256(settingsContent) }], createdDirs: [] },
+    { name: "other skill folder", files: [{ path: ".claude/skills/other/SKILL.md", sha256: sha256("x") }], createdDirs: [] },
+    { name: "foreign created folder", files: [], createdDirs: [".claude/other"] },
+  ];
+  for (const { name, files, createdDirs } of cases) {
+    const root = makeConsumer(t);
+    assertExit(run(root, "install"), 0);
+    writeAt(root, settings, settingsContent);
+    const manifest = readManifest(root);
+    manifest.files.push(...files);
+    manifest.createdDirs.push(...createdDirs);
+    writeFileSync(at(root, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+    const before = hashTree(root);
+
+    const result = run(root, "install");
+
+    assertExit(result, 1);
+    assert.match(result.stderr, /unsafe or malformed path/, `${name}: ${result.stderr}`);
+    assert.equal(hashTree(root), before, `${name}: folder unchanged`);
+    assert.ok(existsSync(at(root, settings)), `${name}: consumer file kept`);
+  }
+});
+
+test("12. a symlinked folder above a stale managed file blocks install and nothing outside is removed", (t) => {
+  const root = makeConsumer(t);
+  const outside = makeConsumer(t, { packageJson: false });
+  assertExit(run(root, "install"), 0);
+  const victimContent = "outside the consumer\n";
+  writeFileSync(path.join(outside, "victim.txt"), victimContent);
+  const linkedDir = `${TARGET_DIR}/skills/linked`;
+  symlinkSync(outside, at(root, linkedDir));
+  const manifest = readManifest(root);
+  manifest.files.push({ path: `${linkedDir}/victim.txt`, sha256: sha256(victimContent) });
+  writeFileSync(at(root, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+  const manifestBefore = readFileSync(at(root, MANIFEST));
+
+  const result = run(root, "install");
+
+  assertExit(result, 1);
+  assert.ok(result.stderr.includes(linkedDir), result.stderr);
+  assert.ok(existsSync(path.join(outside, "victim.txt")), "file outside the consumer kept");
+  assert.deepEqual(readFileSync(at(root, MANIFEST)), manifestBefore);
+});
+
+test("13. a symlinked .claude/skills or manifest is a conflict and nothing is written outside the repo", (t) => {
+  {
+    const root = makeConsumer(t);
+    const shared = makeConsumer(t, { packageJson: false });
+    mkdirSync(at(root, ".claude"));
+    symlinkSync(shared, at(root, ".claude/skills"));
+
+    const result = run(root, "install");
+
+    assertExit(result, 1);
+    assert.ok(result.stderr.includes(".claude/skills"), result.stderr);
+    assert.deepEqual(readdirSync(shared), [], "shared folder untouched");
+    assert.ok(!existsSync(at(root, MANIFEST)));
+  }
+  {
+    const root = makeConsumer(t);
+    const outside = makeConsumer(t, { packageJson: false });
+    const outsideManifest = path.join(outside, "written-by-install.json");
+    mkdirSync(at(root, ".claude"));
+    symlinkSync(outsideManifest, at(root, MANIFEST));
+
+    const result = run(root, "install");
+
+    assertExit(result, 1);
+    assert.ok(result.stderr.includes(MANIFEST), result.stderr);
+    assert.ok(!existsSync(outsideManifest), "nothing written through the manifest symlink");
+    assert.ok(!existsSync(at(root, TARGET_DIR)));
+  }
+});
+
+test("14. an edited file that is no longer shipped blocks install instead of being removed", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  const staleFile = `${TARGET_DIR}/skills/old-skill/SKILL.md`;
+  const manifest = readManifest(root);
+  manifest.files.push({ path: staleFile, sha256: sha256("as installed\n") });
+  writeFileSync(at(root, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+  writeAt(root, staleFile, "edited by the consumer\n");
+  const before = hashTree(root);
+
+  const result = run(root, "install");
+
+  assertExit(result, 1);
+  assert.ok(result.stderr.includes(staleFile), result.stderr);
+  assert.equal(readFileSync(at(root, staleFile), "utf8"), "edited by the consumer\n");
+  assert.equal(hashTree(root), before);
+});
+
+test("15. a created folder that now holds consumer files is kept when its managed file is removed", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  const staleDir = `${TARGET_DIR}/skills/old-skill`;
+  const staleFile = `${staleDir}/SKILL.md`;
+  const staleContent = "retired\n";
+  const consumerFile = `${staleDir}/notes.md`;
+  writeAt(root, staleFile, staleContent);
+  writeAt(root, consumerFile, "mine\n");
+  const manifest = readManifest(root);
+  manifest.files.push({ path: staleFile, sha256: sha256(staleContent) });
+  manifest.createdDirs.push(staleDir);
+  writeFileSync(at(root, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+
+  assertExit(run(root, "install"), 0);
+
+  assert.ok(!existsSync(at(root, staleFile)), "stale managed file removed");
+  assert.equal(readFileSync(at(root, consumerFile), "utf8"), "mine\n");
+});
+
+test("16. an upgrade rewrites a managed file whose shipped content changed", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  const oldContent = "---\nname: repo-refresh\n---\nprevious version\n";
+  writeFileSync(at(root, SKILL_MD), oldContent);
+  const manifest = readManifest(root);
+  manifest.files = manifest.files.map((file) => (file.path === SKILL_MD ? { path: SKILL_MD, sha256: sha256(oldContent) } : file));
+  writeFileSync(at(root, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+
+  assertExit(run(root, "install"), 0);
+
+  const shipped = pluginSource("skills/repo-refresh/SKILL.md");
+  assert.deepEqual(readFileSync(at(root, SKILL_MD)), shipped);
+  assert.equal(readManifest(root).files.find((file) => file.path === SKILL_MD)?.sha256, sha256(shipped));
+});
+
+test("17. a re-run after an interrupted upgrade completes instead of reporting a local edit", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  // The manifest still records the previous version's hash, but the new content was already written.
+  const manifest = readManifest(root);
+  manifest.files = manifest.files.map((file) => (file.path === SKILL_MD ? { path: SKILL_MD, sha256: sha256("previous version\n") } : file));
+  writeFileSync(at(root, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+
+  const result = run(root, "install");
+
+  assertExit(result, 0);
+  const shipped = pluginSource("skills/repo-refresh/SKILL.md");
+  assert.deepEqual(readFileSync(at(root, SKILL_MD)), shipped);
+  assert.equal(readManifest(root).files.find((file) => file.path === SKILL_MD)?.sha256, sha256(shipped));
+});
+
+test("18. an unexpected I/O error exits 1 with a prefixed message and no stack trace", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  chmodSync(at(root, SKILL_MD), 0o000);
+
+  const result = run(root, "install");
+
+  assertExit(result, 1);
+  assert.match(result.stderr, /^ai-toolkit-example: unexpected error: .*EACCES/);
+  assert.doesNotMatch(result.stderr, /\n\s+at /);
 });

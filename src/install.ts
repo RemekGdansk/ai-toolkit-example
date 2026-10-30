@@ -49,11 +49,14 @@ export function install(): number {
   const payload = listPayload();
   const previousFiles = new Map<string, string>((previous?.files ?? []).map((file) => [file.path, file.sha256]));
   const targetPaths = new Set(payload.map((file) => file.targetPath));
+  const staleFiles = [...previousFiles.keys()].filter((filePath) => !targetPaths.has(filePath));
+  const shippedHashes = new Map(payload.map((file) => [file.targetPath, sha256(readFileSync(file.sourcePath))]));
 
   const localEdits: string[] = [];
   const conflicts = new Set<string>();
 
-  // Guard: local edit. A managed file that exists but no longer matches its recorded hash.
+  // Guard: local edit. A managed file that exists but matches neither its recorded hash nor the
+  // shipped one (a file already holding the shipped content is what an interrupted upgrade leaves).
   const currentHashes = new Map<string, string>();
   for (const [filePath, recorded] of previousFiles) {
     const stats = lstatOf(abs(root, filePath));
@@ -61,7 +64,7 @@ export function install(): number {
       continue;
     }
     const current = stats.isFile() ? sha256(readFileSync(abs(root, filePath))) : undefined;
-    if (current !== recorded) {
+    if (current === undefined || (current !== recorded && current !== shippedHashes.get(filePath))) {
       localEdits.push(filePath);
     } else {
       currentHashes.set(filePath, current);
@@ -78,11 +81,25 @@ export function install(): number {
     }
   }
 
-  // Every folder the targets and the manifest need, shallowest first. One that exists as a non-folder is a conflict.
+  // Every folder the targets and the manifest need, shallowest first. One that exists as a non-folder
+  // (including a symlink, which would send writes outside the repo) is a conflict.
   const neededDirs = [...new Set([...targetPaths, MANIFEST_PATH].flatMap(ancestors))].sort(byDepthAscending);
   for (const dir of neededDirs) {
-    const stats = statOf(abs(root, dir));
-    if (stats === undefined ? lstatOf(abs(root, dir)) !== undefined : !stats.isDirectory()) {
+    const stats = lstatOf(abs(root, dir));
+    if (stats !== undefined && !stats.isDirectory()) {
+      conflicts.add(dir);
+    }
+  }
+
+  // The manifest itself must be a regular file; writing through a symlink would land outside the repo.
+  const manifestStats = lstatOf(abs(root, MANIFEST_PATH));
+  if (manifestStats !== undefined && !manifestStats.isFile()) {
+    conflicts.add(MANIFEST_PATH);
+  }
+
+  // Guard: a symlinked folder above anything install may remove would send the removal elsewhere.
+  for (const dir of new Set([...staleFiles, ...(previous?.createdDirs ?? [])].flatMap(ancestors))) {
+    if (lstatOf(abs(root, dir))?.isSymbolicLink()) {
       conflicts.add(dir);
     }
   }
@@ -97,7 +114,6 @@ export function install(): number {
     const hash = sha256(content);
     return { targetPath: file.targetPath, content, sha256: hash, needsWrite: currentHashes.get(file.targetPath) !== hash };
   });
-  const staleFiles = [...previousFiles.keys()].filter((filePath) => !targetPaths.has(filePath));
 
   // ---- Apply ---------------------------------------------------------------
 

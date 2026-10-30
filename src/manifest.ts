@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { TARGET_DIR } from "./payload.js";
 
 /** Manifest location, POSIX-relative to the consumer root. */
 export const MANIFEST_PATH = ".claude/.ai-toolkit-example-manifest.json";
@@ -87,7 +88,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** A normalized POSIX path inside .claude/, so a manifest can never point the installer outside it. */
+/** A normalized POSIX path under .claude/. Callers narrow it further to the plugin folder. */
 function isManagedPath(value: unknown): value is string {
   return (
     typeof value === "string" &&
@@ -97,6 +98,11 @@ function isManagedPath(value: unknown): value is string {
     !value.includes("\0") &&
     path.posix.normalize(value) === value
   );
+}
+
+/** The plugin folder, a folder inside it, or one of its ancestors (.claude, .claude/skills). */
+function isPluginDirOrAncestor(dir: string): boolean {
+  return dir === TARGET_DIR || dir.startsWith(`${TARGET_DIR}/`) || TARGET_DIR.startsWith(`${dir}/`);
 }
 
 function validate(raw: unknown): Manifest {
@@ -125,7 +131,7 @@ function validate(raw: unknown): Manifest {
       fail(`every "files" entry must be an object`);
     }
     const { path: filePath, sha256: hash } = entry;
-    if (!isManagedPath(filePath) || filePath === ".claude" || filePath === MANIFEST_PATH) {
+    if (!isManagedPath(filePath) || !filePath.startsWith(`${TARGET_DIR}/`)) {
       fail(`"files" entry has an unsafe or malformed path: ${JSON.stringify(filePath)}`);
     }
     if (typeof hash !== "string" || !/^[0-9a-f]{64}$/.test(hash)) {
@@ -140,7 +146,7 @@ function validate(raw: unknown): Manifest {
 
   const seenDirs = new Set<string>();
   for (const dir of createdDirs as unknown[]) {
-    if (!isManagedPath(dir)) {
+    if (!isManagedPath(dir) || !isPluginDirOrAncestor(dir)) {
       fail(`"createdDirs" has an unsafe or malformed path: ${JSON.stringify(dir)}`);
     }
     if (seenDirs.has(dir)) {
