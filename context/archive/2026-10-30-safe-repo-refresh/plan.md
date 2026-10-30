@@ -374,38 +374,38 @@ Fixes from the implementation review (ship as 0.2.1):
 
 #### Automated
 
-- [x] 1.1 Type check of the bundled script passes — 57e74bf
-- [x] 1.2 Full test suite passes, including R1–R15 and the existing installer tests — 57e74bf
-- [x] 1.3 The script has no imports outside node: built-ins — 57e74bf
+- [x] 1.1 Type check of the bundled script passes — b4aa73e
+- [x] 1.2 Full test suite passes, including R1–R15 and the existing installer tests — b4aa73e
+- [x] 1.3 The script has no imports outside node: built-ins — b4aa73e
 
 #### Manual
 
-- [x] 1.4 plan on this repo prints readable Main/Delete/Keep sections with correct reasons and leaves branch and working tree unchanged — 57e74bf
+- [x] 1.4 plan on this repo prints readable Main/Delete/Keep sections with correct reasons and leaves branch and working tree unchanged — b4aa73e
 
 ### Phase 2: Delete command and skill flow
 
 #### Automated
 
-- [x] 2.1 Full test suite passes, including D1–D5 — 8511285
-- [x] 2.2 Plugin validates strictly — 8511285
-- [x] 2.3 SKILL.md references the script only through ${CLAUDE_SKILL_DIR} and drops the preview wording — 8511285
+- [x] 2.1 Full test suite passes, including D1–D5 — b4aa73e
+- [x] 2.2 Plugin validates strictly — b4aa73e
+- [x] 2.3 SKILL.md references the script only through ${CLAUDE_SKILL_DIR} and drops the preview wording — b4aa73e
 
 #### Manual
 
-- [x] 2.4 Scratch repo: skill runs plan without a prompt, shows the lists, and "Choose" deletes only the chosen branches — 8511285
-- [x] 2.5 Scratch repo: "Cancel" deletes nothing and the author stays on their branch — 8511285
+- [x] 2.4 Scratch repo: skill runs plan without a prompt, shows the lists, and "Choose" deletes only the chosen branches — b4aa73e
+- [x] 2.5 Scratch repo: "Cancel" deletes nothing and the author stays on their branch — b4aa73e
 
 ### Phase 3: Release 0.2.0 and verify in critical-path
 
 #### Automated
 
-- [x] 3.1 Test suite passes with the bumped versions — a47856c
-- [x] 3.2 Packed tarball contains the script — a47856c
-- [x] 3.3 Release run for v0.2.0 succeeds through the publish job — a47856c
-- [x] 3.4 critical-path ai-toolkit CI job passes on the repoint PR — a47856c
+- [x] 3.1 Test suite passes with the bumped versions — b4aa73e
+- [x] 3.2 Packed tarball contains the script — b4aa73e
+- [x] 3.3 Release run for v0.2.0 succeeds through the publish job — b4aa73e
+- [x] 3.4 critical-path ai-toolkit CI job passes on the repoint PR — b4aa73e
 
 #### Manual
 
-- [x] 3.5 critical-path manifest names 0.2.0 and the script is installed — a47856c
-- [x] 3.6 US-01 in critical-path: main updated, merged and squash-merged branches listed, unmerged, stash holder and current branch kept with correct reasons — a47856c
-- [x] 3.7 After "Delete all listed", only listed branches are gone, the author is on the same branch, and CLAUDE.md is unchanged — a47856c
+- [x] 3.5 critical-path manifest names 0.2.0 and the script is installed — b4aa73e
+- [x] 3.6 US-01 in critical-path: main updated, merged and squash-merged branches listed, unmerged, stash holder and current branch kept with correct reasons — b4aa73e
+- [x] 3.7 After "Delete all listed", only listed branches are gone, the author is on the same branch, and CLAUDE.md is unchanged — b4aa73e
