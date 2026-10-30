@@ -255,27 +255,27 @@ None. Nothing has been published yet, and `0.1.0` is the first registry version.
 
 #### Automated
 
-- [x] 1.1 Tests and build pass: `npm test` — ad879a9
-- [x] 1.2 Lockfile is in sync and installs cleanly — ad879a9
-- [x] 1.3 Package metadata points at GitHub Packages — ad879a9
-- [x] 1.4 Packed tarball contains the CLI and the plugin files — ad879a9
-- [x] 1.5 Every action in the workflow is pinned to a full SHA — ad879a9
-- [x] 1.6 The workflow never interpolates release payload into a script — ad879a9
-- [x] 1.7 Plugin still validates locally: `npm run validate:plugin` — ad879a9
+- [x] 1.1 Tests and build pass: `npm test` — 1bb3d27
+- [x] 1.2 Lockfile is in sync and installs cleanly — 1bb3d27
+- [x] 1.3 Package metadata points at GitHub Packages — 1bb3d27
+- [x] 1.4 Packed tarball contains the CLI and the plugin files — 1bb3d27
+- [x] 1.5 Every action in the workflow is pinned to a full SHA — 1bb3d27
+- [x] 1.6 The workflow never interpolates release payload into a script — 1bb3d27
+- [x] 1.7 Plugin still validates locally: `npm run validate:plugin` — 1bb3d27
 
 #### Manual
 
-- [x] 1.8 PR run: `check` green, `publish` skipped
-- [x] 1.9 `check` log shows guard skipped and tarball contents check passing
-- [ ] 1.10 Push to `main` runs `check` green with `publish` skipped
+- [x] 1.8 PR run: `check` green, `publish` skipped — 1bb3d27
+- [x] 1.9 `check` log shows guard skipped and tarball contents check passing — 1bb3d27
+- [x] 1.10 Push to `main` runs `check` green with `publish` skipped — 1bb3d27
 
 ### Phase 2: First release and failure paths
 
 #### Manual
 
-- [ ] 2.1 Pre-release `v0.1.0` fails the guard and is deleted
-- [ ] 2.2 Release `v0.1.0` runs `check` and `publish` green
-- [ ] 2.3 Package `0.1.0` is in GitHub Packages, linked to the repo, and public
-- [ ] 2.4 Re-running the `v0.1.0` release fails visibly with `E409`
-- [ ] 2.5 Mismatched release `v0.1.1` fails the guard and is deleted
-- [ ] 2.6 Only release and tag `v0.1.0` remain
+- [x] 2.1 Pre-release `v0.1.0` fails the guard and is deleted
+- [x] 2.2 Release `v0.1.0` runs `check` and `publish` green
+- [x] 2.3 Package `0.1.0` is in GitHub Packages, linked to the repo, and public
+- [x] 2.4 Re-running the `v0.1.0` release fails visibly with `E409`
+- [x] 2.5 Mismatched release `v0.1.1` fails the guard and is deleted
+- [x] 2.6 Only release and tag `v0.1.0` remain

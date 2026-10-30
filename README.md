@@ -92,7 +92,7 @@ If the release run fails:
 | --- | --- |
 | `Release tag '<tag>' does not match package.json version '<version>'` | Delete the release and its tag, then fix the version (bump, merge) or cut the release with the right tag. |
 | `Release <tag> is marked as a pre-release` | Delete the pre-release and cut a normal release. Pre-releases are not published. |
-| `E409` / `Cannot publish over existing version` | That version is already published and cannot be replaced. Bump the version, merge, and cut a new release. |
+| `You cannot publish over the previously published versions: <version>` (in the publish step) | That version is already published and cannot be replaced. Bump the version, merge, and cut a new release. |
 
 To delete a bad release and its tag:
 
