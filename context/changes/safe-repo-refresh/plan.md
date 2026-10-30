@@ -357,26 +357,26 @@ Consumers on `0.1.0` get the new skill by bumping their pinned version and re-ru
 
 #### Automated
 
-- [x] 1.1 Type check of the bundled script passes
-- [x] 1.2 Full test suite passes, including R1–R15 and the existing installer tests
-- [x] 1.3 The script has no imports outside node: built-ins
+- [x] 1.1 Type check of the bundled script passes — 57e74bf
+- [x] 1.2 Full test suite passes, including R1–R15 and the existing installer tests — 57e74bf
+- [x] 1.3 The script has no imports outside node: built-ins — 57e74bf
 
 #### Manual
 
-- [x] 1.4 plan on this repo prints readable Main/Delete/Keep sections with correct reasons and leaves branch and working tree unchanged
+- [x] 1.4 plan on this repo prints readable Main/Delete/Keep sections with correct reasons and leaves branch and working tree unchanged — 57e74bf
 
 ### Phase 2: Delete command and skill flow
 
 #### Automated
 
-- [ ] 2.1 Full test suite passes, including D1–D5
-- [ ] 2.2 Plugin validates strictly
-- [ ] 2.3 SKILL.md references the script only through ${CLAUDE_SKILL_DIR} and drops the preview wording
+- [x] 2.1 Full test suite passes, including D1–D5
+- [x] 2.2 Plugin validates strictly
+- [x] 2.3 SKILL.md references the script only through ${CLAUDE_SKILL_DIR} and drops the preview wording
 
 #### Manual
 
-- [ ] 2.4 Scratch repo: skill runs plan without a prompt, shows the lists, and "Choose" deletes only the chosen branches
-- [ ] 2.5 Scratch repo: "Cancel" deletes nothing and the author stays on their branch
+- [x] 2.4 Scratch repo: skill runs plan without a prompt, shows the lists, and "Choose" deletes only the chosen branches
+- [x] 2.5 Scratch repo: "Cancel" deletes nothing and the author stays on their branch
 
 ### Phase 3: Release 0.2.0 and verify in critical-path
 

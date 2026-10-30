@@ -2,17 +2,21 @@
 // @ts-check
 /**
  * repo-refresh: update `main` from its upstream without switching branches, then
- * classify every local branch as a deletion candidate or kept, each with a reason.
+ * classify every local branch as a deletion candidate or kept, each with a reason. `delete` re-classifies and
+ * deletes only the requested branches that are still candidates at the tip the author saw.
  *
  * Usage: node repo-refresh.mjs plan [--json]
+ *        node repo-refresh.mjs delete <branch>=<sha> [<branch>=<sha>...]
  *
  * Zero dependencies: only node: built-ins and the git CLI (2.38 or newer).
- * Exit codes: 0 success (warnings included), 1 failed precondition or unexpected error, 2 usage error.
+ * Exit codes: 0 success (warnings included), 1 failed precondition, refused deletion or unexpected error,
+ * 2 usage error.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 const PREFIX = "repo-refresh:";
 const MAIN = "main";
@@ -21,11 +25,14 @@ const MIN_GIT = { major: 2, minor: 38 };
 const FETCH_TIMEOUT_MS = 60_000;
 const MAX_BUFFER = 256 * 1024 * 1024;
 const SHORT_SHA = 7;
+const SCRIPT_PATH = fileURLToPath(import.meta.url);
 
 const USAGE = `Usage: node repo-refresh.mjs <command>
 
 Commands:
-  plan [--json]   Update main from its upstream, then list local branches to delete or keep`;
+  plan [--json]                      Update main from its upstream, then list local branches to delete or keep
+  delete <branch>=<sha> [...]        Delete the listed branches that are still candidates at that tip
+                                     (<sha>: 7-40 hex characters, matched as a prefix of the branch tip)`;
 
 class UsageError extends Error {}
 class PreconditionError extends Error {}
@@ -129,6 +136,15 @@ function describeFailure(result) {
   }
   const lines = result.stderr.split("\n").map((line) => line.trim()).filter((line) => line !== "");
   return lines.at(-1) ?? `exit ${String(result.status)}`;
+}
+
+/**
+ * Quote a word for a POSIX shell when it holds anything beyond plainly safe characters.
+ * @param {string} word
+ * @returns {string}
+ */
+function shellQuote(word) {
+  return /^[\w./@%+=,-]+$/.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`;
 }
 
 /**
@@ -413,8 +429,79 @@ function plan(args) {
     lines.push("Warnings:");
     for (const warning of warnings) lines.push(`  - ${warning}`);
   }
+  if (candidates.length > 0) {
+    const pairs = candidates.map((entry) => shellQuote(`${entry.branch}=${entry.sha}`));
+    lines.push("Delete command:", `  node ${shellQuote(SCRIPT_PATH)} delete ${pairs.join(" ")}`);
+  }
   console.log(lines.join("\n"));
   return 0;
+}
+
+/**
+ * Parse every `<branch>=<sha>` argument before anything is checked or deleted; any malformed one is a usage error.
+ * @param {readonly string[]} args
+ * @returns {{ branch: string, sha: string }[]}
+ */
+function parsePairs(args) {
+  if (args.length === 0) throw new UsageError("delete needs at least one <branch>=<sha> argument");
+  return args.map((arg) => {
+    // A SHA never contains "=", so the last "=" separates it from the branch name.
+    const separator = arg.lastIndexOf("=");
+    if (separator === -1) throw new UsageError(`expected <branch>=<sha>, got "${arg}"`);
+    const branch = arg.slice(0, separator);
+    const sha = arg.slice(separator + 1);
+    if (branch === "") throw new UsageError(`missing branch name in "${arg}"`);
+    if (!/^[0-9a-fA-F]{7,40}$/.test(sha)) {
+      throw new UsageError(`"${sha}" in "${arg}" is not a commit SHA of 7 to 40 hex characters`);
+    }
+    return { branch, sha: sha.toLowerCase() };
+  });
+}
+
+/**
+ * Delete each requested branch only if it exists, its tip still starts with the given SHA and a fresh
+ * classification (no fetch, no main update) still lists it as a candidate.
+ * @param {readonly string[]} args
+ * @returns {number}
+ */
+function deleteBranches(args) {
+  const pairs = parsePairs(args);
+  preconditions();
+  const { candidates, kept } = classify(readRepo(), resolveMain());
+
+  /** @type {string[]} */
+  const deleted = [];
+  /** @type {string[]} */
+  const refused = [];
+  const refuse = (/** @type {string} */ branch, /** @type {string} */ reason) => refused.push(`  ${branch}  ${reason}`);
+  for (const { branch, sha } of pairs) {
+    const candidate = candidates.find((entry) => entry.branch === branch);
+    const keptEntry = kept.find((entry) => entry.branch === branch);
+    const entry = candidate ?? keptEntry;
+    if (entry === undefined) {
+      refuse(branch, "no such local branch");
+      continue;
+    }
+    if (!entry.sha.startsWith(sha)) {
+      refuse(branch, `its tip is now ${short(entry.sha)}, not ${sha}; run plan again`);
+      continue;
+    }
+    if (candidate === undefined) {
+      refuse(branch, `not a deletion candidate: ${keptEntry?.reason ?? "kept"}`);
+      continue;
+    }
+    // -D, not -d: a squash-merged branch is not an ancestor of main, so -d would refuse it.
+    const result = runGit(["branch", "-D", branch]);
+    if (result.error !== undefined || result.status !== 0) {
+      refuse(branch, `git branch -D failed: ${describeFailure(result)}`);
+      continue;
+    }
+    deleted.push(`  ${branch}  was ${short(candidate.sha)}`);
+    candidates.splice(candidates.indexOf(candidate), 1);
+  }
+
+  console.log([`Deleted (${deleted.length}):`, ...deleted, `Refused (${refused.length}):`, ...refused].join("\n"));
+  return refused.length > 0 ? 1 : 0;
 }
 
 /**
@@ -428,6 +515,7 @@ function main(args) {
     return 0;
   }
   if (command === "plan") return plan(rest);
+  if (command === "delete") return deleteBranches(rest);
   throw new UsageError(command === undefined ? "missing command" : `unknown command "${command}"`);
 }
 

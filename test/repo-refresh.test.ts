@@ -477,3 +477,203 @@ test("R15 failed preconditions exit 1 with nothing changed; usage errors exit 2"
     assert.equal(refs(fx.work), before);
   });
 });
+
+function tip(cwd: string, branch: string): string {
+  return git(cwd, "rev-parse", `refs/heads/${branch}`);
+}
+
+function branchExists(cwd: string, branch: string): boolean {
+  return gitRaw(cwd, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`]).status === 0;
+}
+
+/** The `<branch>=<sha>` pairs from the last line of `plan`'s text output (the printed delete command). */
+function deletePairsFromPlanText(cwd: string): string[] {
+  const result = runScript(cwd, "plan");
+  assertExit(result, 0);
+  const lines = result.stdout.trimEnd().split("\n");
+  assert.equal(lines.at(-2), "Delete command:", result.stdout);
+  const match = /^ {2}node (\S+) delete (.+)$/.exec(lines.at(-1) ?? "");
+  assert.ok(match, result.stdout);
+  assert.equal(match[1], SCRIPT);
+  return (match[2] ?? "").split(" ");
+}
+
+/** Section lines of `delete`'s text output: branch names under "Deleted (N):" and "Refused (N):". */
+function deleteSections(stdout: string): { deleted: string[]; refused: Map<string, string> } {
+  const match = /^Deleted \((\d+)\):\n((?: {2}.*\n)*)Refused \((\d+)\):\n((?: {2}.*\n)*)$/.exec(stdout);
+  assert.ok(match, `delete output has Deleted and Refused sections:\n${stdout}`);
+  const rows = (block: string): [string, string][] =>
+    block
+      .split("\n")
+      .filter((line) => line !== "")
+      .map((line) => {
+        const [branch = "", ...reason] = line.trim().split("  ");
+        return [branch, reason.join("  ")];
+      });
+  const deleted = rows(match[2] ?? "").map(([branch]) => branch);
+  const refused = new Map(rows(match[4] ?? ""));
+  assert.equal(deleted.length, Number(match[1]));
+  assert.equal(refused.size, Number(match[3]));
+  return { deleted, refused };
+}
+
+test("D1 deletes the listed regular-merged and squash-merged candidates; other branches and the remote are unchanged", (t) => {
+  const fx = makeFixture(t);
+  branchWithCommits(fx.work, "merged", ["m.txt"]);
+  git(fx.work, "merge", "-q", "--no-ff", "-m", "merge merged", "merged");
+  branchWithCommits(fx.work, "squashed", ["s.txt"]);
+  squashMerge(fx.work, "squashed");
+  git(fx.work, "push", "-q", "origin", "main");
+  branchWithCommits(fx.work, "unmerged", ["u.txt"]);
+  git(fx.work, "push", "-q", "-u", "origin", "unmerged");
+  git(fx.work, "branch", "fresh");
+  git(fx.work, "checkout", "-q", "unmerged");
+  const pairs = deletePairsFromPlanText(fx.work);
+  assert.deepEqual(pairs, [`merged=${tip(fx.work, "merged")}`, `squashed=${tip(fx.work, "squashed")}`]);
+  const before = {
+    others: refs(fx.work, "refs/heads/")
+      .split("\n")
+      .filter((line) => !/^refs\/heads\/(merged|squashed) /.test(line))
+      .join("\n"),
+    remote: refs(fx.remote),
+    head: git(fx.work, "rev-parse", "HEAD"),
+  };
+
+  const result = runScript(fx.work, "delete", ...pairs);
+
+  assertExit(result, 0);
+  const sections = deleteSections(result.stdout);
+  assert.deepEqual(sections.deleted, ["merged", "squashed"]);
+  assert.equal(sections.refused.size, 0);
+  assert.equal(branchExists(fx.work, "merged"), false);
+  assert.equal(branchExists(fx.work, "squashed"), false);
+  assert.equal(refs(fx.work, "refs/heads/"), before.others);
+  assert.equal(refs(fx.remote), before.remote);
+  assert.equal(git(fx.work, "branch", "--show-current"), "unmerged");
+  assert.equal(git(fx.work, "rev-parse", "HEAD"), before.head);
+});
+
+test("D2 a branch that gained a commit after plan is refused and kept: exit 1", (t) => {
+  const fx = makeFixture(t);
+  branchWithCommits(fx.work, "feature", ["a.txt"]);
+  squashMerge(fx.work, "feature");
+  const report = plan(fx.work);
+  const seen = candidate(report, "feature");
+  assert.ok(seen, JSON.stringify(report, null, 2));
+  git(fx.work, "checkout", "-q", "feature");
+  commit(fx.work, "late.txt", "late\n", "after plan");
+  git(fx.work, "checkout", "-q", "main");
+  const newTip = tip(fx.work, "feature");
+
+  const result = runScript(fx.work, "delete", `feature=${seen.sha}`);
+
+  assertExit(result, 1);
+  const sections = deleteSections(result.stdout);
+  assert.deepEqual(sections.deleted, []);
+  assert.match(sections.refused.get("feature") ?? "", /tip is now/);
+  assert.equal(tip(fx.work, "feature"), newTip);
+});
+
+test("D3 main, the checked-out branch, kept branches, a missing branch and a branch git refuses to delete are refused: exit 1", (t) => {
+  const fx = makeFixture(t);
+  const initial = git(fx.work, "rev-parse", "main");
+  // A merged branch checked out here.
+  branchWithCommits(fx.work, "here", ["here.txt"]);
+  git(fx.work, "merge", "-q", "--no-ff", "-m", "merge here", "here");
+  // An unmerged branch.
+  branchWithCommits(fx.work, "unmerged", ["u.txt"]);
+  // A squash-merged candidate holding the only stash base.
+  branchWithCommits(fx.work, "stashed", ["st.txt"]);
+  squashMerge(fx.work, "stashed");
+  git(fx.work, "checkout", "-q", "stashed");
+  writeFileSync(path.join(fx.work, "st.txt"), "stashed edit\n");
+  git(fx.work, "stash", "-q");
+  git(fx.work, "checkout", "-q", "main");
+  // A merged branch mid-rebase in another worktree (reported as detached, so classification sees a candidate).
+  git(fx.work, "checkout", "-q", "-b", "onto", initial);
+  commit(fx.work, "rb.txt", "onto\n", "onto adds rb.txt");
+  git(fx.work, "checkout", "-q", "main");
+  branchWithCommits(fx.work, "rebasing", ["rb.txt"]);
+  git(fx.work, "merge", "-q", "--no-ff", "-m", "merge rebasing", "rebasing");
+  const wt = path.join(fx.root, "wt");
+  git(fx.work, "worktree", "add", "-q", wt, "rebasing");
+  assert.notEqual(gitRaw(wt, ["rebase", "onto"]).status, 0, "rebase stops on a conflict");
+  git(fx.work, "checkout", "-q", "here");
+  const report = plan(fx.work);
+  assert.ok(candidate(report, "rebasing"), JSON.stringify(report, null, 2));
+  const before = refs(fx.work, "refs/heads/");
+  const pair = (branch: string): string => `${branch}=${tip(fx.work, branch)}`;
+
+  const result = runScript(
+    fx.work,
+    "delete",
+    pair("main"),
+    pair("here"),
+    pair("unmerged"),
+    pair("stashed"),
+    `missing=${tip(fx.work, "main")}`,
+    pair("rebasing"),
+  );
+
+  assertExit(result, 1);
+  const sections = deleteSections(result.stdout);
+  assert.deepEqual(sections.deleted, []);
+  assert.match(sections.refused.get("main") ?? "", /not a deletion candidate: main/);
+  assert.match(sections.refused.get("here") ?? "", /not a deletion candidate: checked out/);
+  assert.match(sections.refused.get("unmerged") ?? "", /not a deletion candidate: has changes not in main/);
+  assert.match(sections.refused.get("stashed") ?? "", /not a deletion candidate: holds the base of stash@\{0\}/);
+  assert.match(sections.refused.get("missing") ?? "", /no such local branch/);
+  assert.match(sections.refused.get("rebasing") ?? "", /git branch -D failed/);
+  assert.equal(refs(fx.work, "refs/heads/"), before);
+});
+
+test("D4 a mix of valid and refused pairs deletes only the valid ones", (t) => {
+  const fx = makeFixture(t);
+  branchWithCommits(fx.work, "merged", ["m.txt"]);
+  git(fx.work, "merge", "-q", "--no-ff", "-m", "merge merged", "merged");
+  branchWithCommits(fx.work, "squashed", ["s.txt"]);
+  squashMerge(fx.work, "squashed");
+  branchWithCommits(fx.work, "unmerged", ["u.txt"]);
+  const unmergedTip = tip(fx.work, "unmerged");
+
+  const result = runScript(
+    fx.work,
+    "delete",
+    `merged=${tip(fx.work, "merged").slice(0, 7)}`,
+    `unmerged=${unmergedTip}`,
+    `squashed=${tip(fx.work, "squashed")}`,
+  );
+
+  assertExit(result, 1);
+  const sections = deleteSections(result.stdout);
+  assert.deepEqual(sections.deleted, ["merged", "squashed"]);
+  assert.deepEqual([...sections.refused.keys()], ["unmerged"]);
+  assert.equal(branchExists(fx.work, "merged"), false);
+  assert.equal(branchExists(fx.work, "squashed"), false);
+  assert.equal(tip(fx.work, "unmerged"), unmergedTip);
+});
+
+test("D5 malformed arguments exit 2 with nothing deleted, even next to valid pairs", (t) => {
+  const fx = makeFixture(t);
+  branchWithCommits(fx.work, "merged", ["m.txt"]);
+  git(fx.work, "merge", "-q", "--no-ff", "-m", "merge merged", "merged");
+  const valid = `merged=${tip(fx.work, "merged")}`;
+  const before = refs(fx.work);
+
+  for (const args of [
+    [],
+    [valid, "merged"],
+    [valid, "--json"],
+    [valid, "repo-refresh.mjs", "plan"],
+    [valid, `merged=${tip(fx.work, "merged").slice(0, 6)}`],
+    [valid, "merged=xyz1234"],
+    [valid, `merged=${tip(fx.work, "merged")}0`],
+    [valid, `=${tip(fx.work, "merged")}`],
+  ]) {
+    const result = runScript(fx.work, "delete", ...args);
+    assertExit(result, 2);
+    assert.match(result.stderr, /Usage:/);
+    assert.equal(result.stdout, "");
+    assert.equal(refs(fx.work), before, `nothing changed for: delete ${args.join(" ")}`);
+  }
+});
