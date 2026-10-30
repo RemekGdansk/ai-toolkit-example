@@ -1,18 +1,54 @@
 ---
 name: repo-refresh
 description: Refresh the local repository - update main from the remote without switching branches, then clean up local branches whose work is already in main (merged or squash-merged), deleting only after the user confirms the list. Use when the user asks to refresh, tidy or clean up the repo, sync main, or prune merged local branches.
+allowed-tools: Bash(node ${CLAUDE_SKILL_DIR}/scripts/repo-refresh.mjs plan)
 ---
 
-# Repo refresh (read-only preview)
+# Repo refresh
 
-This is an early version of the skill. It only reports the state of the local repository. **It deletes nothing, updates nothing and switches no branches.** Branch cleanup arrives when the full skill ships.
+All git logic lives in the bundled script. Your job is to run it, show its output, ask the author, and run it again with their choice. Do not work out on your own which branches are merged.
 
-Do not run any command that changes the repository: no `git fetch`, `git pull`, `git checkout`, `git switch`, `git branch -d`/`-D`, `git push`, `git stash` changes or `git reset`. Use only the read-only commands below.
+## Hard rules
+
+- Run no other git command that changes the repository: no `git checkout`/`git switch`, `git pull`, `git push`, `git reset`, `git stash` changes or `git branch -d`/`-D`. Only the script fetches, updates `main` and deletes branches.
+- Never pass a branch to `delete` that `plan` did not list under `Delete (N):`, and always pass it with the SHA from the `plan` output.
+- If `plan` exits 1, report its message and stop. Do not try to fix the repository state yourself.
 
 ## Steps
 
-1. **Current branch.** Run `git branch --show-current` and report it. If the output is empty, report a detached HEAD.
-2. **Main branch.** Use `main` if `git rev-parse --verify --quiet refs/heads/main` succeeds; otherwise stop and report that there is no local `main` branch.
-3. **Local branches and upstream state.** Run `git for-each-ref --format='%(refname:short)|%(upstream:short)|%(upstream:track)' refs/heads`. For each branch, report its upstream (or "no upstream"), and whether the upstream is gone, ahead, behind or in sync, using the last known remote state (no fetch).
-4. **Branches that appear merged into main.** Run `git branch --merged main` and list every branch other than `main` and the current branch. Label this list "appear merged (regular merge only)". Squash-merged branches are not detected yet, so say so.
-5. **Summary.** Print three short lists: current branch, branches that appear merged into main, and all other branches. End with: "Nothing was deleted or changed. Branch cleanup is not available in this version of repo-refresh."
+1. **Plan.** Run, from the repository:
+
+   ```bash
+   node ${CLAUDE_SKILL_DIR}/scripts/repo-refresh.mjs plan
+   ```
+
+   The author does not see command output, so a summary is not enough. In your reply, copy the `Main:`, `Delete (N):`, `Keep (N):` and (if present) `Warnings:` sections into a fenced code block, unchanged, before asking anything. Leave out the `Delete command:` section. If `Delete (0):` lists no branches, say there is nothing to delete and stop.
+
+2. **Ask once.** Do not say that you are deleting, or about to delete, anything until the author has answered. Ask the author one native question (multiple choice). The question dialog is the one place the author always sees in full, so its question text must hold the report, copied from the `plan` output:
+   - the `Main:` line;
+   - every branch under `Delete (N):` with its reason;
+   - every branch under `Keep (N):` with its reason;
+   - any `Warnings:` lines.
+
+   Use exactly these options:
+   - "Delete all listed"
+   - "Choose which to delete"
+   - "Cancel"
+
+   On "Cancel", say that nothing was deleted and stop.
+
+   On "Choose which to delete":
+   - With up to 4 candidates, ask one multi-select question whose options are the candidate branch names, each with its reason from the `plan` output as the description.
+   - With more than 4 candidates, ask the author to type the branch names to delete. Accept only names from the `Delete (N):` list. If they type any other name, say which names are not candidates and ask again.
+
+   If nothing was chosen, say that nothing was deleted and stop.
+
+3. **Delete.** The last line of the `plan` output, under `Delete command:`, holds one `<branch>=<sha>` pair per candidate. Run:
+
+   ```bash
+   node ${CLAUDE_SKILL_DIR}/scripts/repo-refresh.mjs delete <pairs>
+   ```
+
+   where `<pairs>` is exactly the chosen pairs copied from that line, unchanged (keep any quoting). For "Delete all listed", that is every pair on the line. Do not compose or shorten a pair yourself. The script re-checks every branch and refuses any that is no longer a candidate at the same tip.
+
+4. **Report.** Copy the `delete` output (`Deleted (N):` and `Refused (N):`) into your reply as a fenced code block, unchanged. Exit 1 means at least one branch was refused; that is a normal result, not an error to work around. Then end with a short summary: the author is still on `<branch>` (the current branch from `git branch --show-current`, or a detached HEAD), and nothing was pushed or deleted on the remote.

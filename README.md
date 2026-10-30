@@ -1,6 +1,6 @@
 # @remekgdansk/ai-toolkit-example
 
-An npm package that installs the author's shared AI-agent skills into a consumer repo as a Claude Code skills-directory plugin. It currently ships one skill, `repo-refresh`, as a read-only preview: it reports the repo's branches and changes nothing.
+An npm package that installs the author's shared AI-agent skills into a consumer repo as a Claude Code skills-directory plugin. It currently ships one skill, `repo-refresh`: it updates `main` from the remote and, after you confirm, deletes the local branches whose work is already in `main`.
 
 Install is an explicit command, not a `postinstall` script. Requires Node 22 or later.
 
@@ -30,7 +30,7 @@ The package is published to GitHub Packages as `@remekgdansk/ai-toolkit-example`
 
    ```json
    "scripts": {
-     "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.1.0"
+     "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.2.0"
    }
    ```
 
@@ -42,7 +42,7 @@ The package is published to GitHub Packages as `@remekgdansk/ai-toolkit-example`
    npm run ai-toolkit -- install
    ```
 
-   On success it prints `installed @remekgdansk/ai-toolkit-example@0.1.0 (2 files)`, the command to invoke the skill, and a reminder to reload plugins. It exits 0.
+   On success it prints `installed @remekgdansk/ai-toolkit-example@0.2.0 (3 files)`, the command to invoke the skill, and a reminder to reload plugins. It exits 0.
 
 When the token expires, create a new one and re-run the `npm login` command.
 
@@ -112,12 +112,12 @@ For developing the toolkit, install it from a tarball instead of the registry.
    npm pack
    ```
 
-   This creates `remekgdansk-ai-toolkit-example-0.1.0.tgz`.
+   This creates `remekgdansk-ai-toolkit-example-0.2.0.tgz`.
 
 2. In the consumer repo, add it as a dev dependency:
 
    ```sh
-   npm i -D <path-to-this-repo>/remekgdansk-ai-toolkit-example-0.1.0.tgz
+   npm i -D <path-to-this-repo>/remekgdansk-ai-toolkit-example-0.2.0.tgz
    ```
 
    With npm 12 or later you may see `npm warn install-scripts ... blocked because they are not covered by allowScripts`. Those packages are the consumer's own dependencies; this package has no install scripts, so the warning does not affect it.
@@ -137,7 +137,22 @@ For developing the toolkit, install it from a tarball instead of the registry.
 3. Run `/reload-plugins` (or restart Claude Code from the repo root).
 4. Run `/ai-toolkit-example:repo-refresh`.
 
-Claude Code lists the plugin as `ai-toolkit-example@skills-dir`.
+Claude Code lists the plugin as `ai-toolkit-example@skills-dir`. You can also ask it to refresh, tidy or clean up the repo.
+
+The skill needs git 2.38 or later and `node` on your `PATH`. All git logic lives in a bundled script; Claude Code only runs it, shows its output and asks you. The flow:
+
+1. **Plan.** The script fetches `main`'s remote with `git fetch --prune` and fast-forwards local `main` without switching branches or touching your working tree. If it cannot (offline, no upstream, `main` diverged, or `main` checked out in another worktree), it warns and goes on with local `main`. It then lists every local branch under "Delete" or "Keep", each with a reason. A branch is listed for deletion when it was merged into `main`, squash-merged (merging it into `main` would change nothing), or fast-forward merged with its upstream gone.
+2. **Confirm.** Claude Code asks once: "Delete all listed", "Choose which to delete" or "Cancel".
+3. **Delete.** The script re-checks each chosen branch and deletes it only if it is still a candidate at the same commit you saw. Anything else is refused with a reason.
+
+The skill never deletes:
+
+- `main`, the checked-out branch, or a branch checked out in another worktree;
+- a branch with changes that are not in `main`, including a squash-merged branch with a later commit or one whose squash `main` reverted;
+- a branch with no commits of its own, unless it was fast-forward merged and its upstream is gone;
+- the last branch that holds a stash's base commit.
+
+It never pushes and never deletes remote branches. The only remote operation is the fetch. The script refuses to run, and changes nothing, outside a git work tree, without a local `main`, or while a merge, rebase, cherry-pick or bisect is in progress.
 
 ## What gets written
 
@@ -145,6 +160,7 @@ All paths are relative to the consumer repo root:
 
 - `.claude/skills/ai-toolkit-example/.claude-plugin/plugin.json`
 - `.claude/skills/ai-toolkit-example/skills/repo-refresh/SKILL.md`
+- `.claude/skills/ai-toolkit-example/skills/repo-refresh/scripts/repo-refresh.mjs`
 - `.claude/.ai-toolkit-example-manifest.json`: records each installed file with its SHA-256 hash and each folder install created.
 
 Nothing else in the consumer repo is touched. Other skills in `.claude/skills/` stay as they are.

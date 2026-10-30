@@ -1,0 +1,19 @@
+{
+  // Type-checks the plain-JavaScript scripts shipped inside plugin/ (no emit).
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+
+    "module": "nodenext",
+    "target": "esnext",
+    "types": ["node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+  },
+  "include": ["plugin/**/*.mjs"]
+}
