@@ -72,11 +72,14 @@ ai-toolkit:
     contents: read
   steps:
     - uses: actions/checkout@v<x> # pin to a commit SHA if your repo requires it
+      with:
+        persist-credentials: false
     - uses: actions/setup-node@v<x>
       with:
         node-version-file: .nvmrc
         registry-url: https://npm.pkg.github.com
         scope: "@remekgdansk"
+        package-manager-cache: false
     - name: Secret present
       env:
         GH_PKG_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
@@ -93,7 +96,8 @@ ai-toolkit:
 
 - `setup-node` with `registry-url` and `scope` writes a runner-only npmrc outside the checkout that reads `NODE_AUTH_TOKEN`, so the committed `.npmrc` stays token-free.
 - The job sets `NODE_AUTH_TOKEN` from the secret, and passes the secret to steps only through `env:`.
-- The job needs no `npm ci` and no cache: `npx` fetches the pinned package.
+- The job needs no `npm ci` and no cache: `npx` fetches the pinned package. `package-manager-cache: false` matters because `setup-node` turns npm caching on by itself when `package.json` has a `packageManager` field. `persist-credentials: false` keeps the checkout's git token off disk, since nothing in the job pushes.
+- To enforce the token-free `.npmrc`, add a step before the install that fails when `.npmrc` is not exactly the scope line, or when `git grep -lE '_auth(Token)?=|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}'` matches a tracked file. Where a token has `=` or an alphanumeric, these patterns have `(` or `[`, so they never match their own text in the workflow file. `-l` prints only file names, so a leaked token never reaches the log.
 - The `if` skips Dependabot PRs and PRs from forks. They don't receive Actions secrets, so the job would always fail there. Dependabot PRs still run your other checks, and Dependabot itself needs no registry token, because the toolkit is not a dependency.
 
 The CI token expires too. Before it does, create a new classic `read:packages` token and run `gh secret set GH_PKG_TOKEN --repo <owner>/<repo>` again. Otherwise the job turns red on the expiry date.
@@ -167,7 +171,8 @@ npm can fail before the installer runs. Then nothing is written either:
 | Message | Remedy |
 | --- | --- |
 | `npm error code E401` and `npm error 401 Unauthorized - GET https://npm.pkg.github.com/@remekgdansk%2fai-toolkit-example - authentication token not provided` | The token is missing, lacks `read:packages`, has expired or was revoked. Locally, create a new token and re-run the `npm login` command. In CI, replace the `GH_PKG_TOKEN` secret. |
-| `npm error code E404` for `@remekgdansk/ai-toolkit-example@<version>` | The pinned version is not published. Check the published versions with `npm view @remekgdansk/ai-toolkit-example versions` or on the package's GitHub Packages page, then fix the version in the `ai-toolkit` script. |
+| `npm error code ETARGET` and `npm error notarget No matching version found for @remekgdansk/ai-toolkit-example@<version>.` | The pinned version is not published. Check the published versions with `npm view @remekgdansk/ai-toolkit-example versions` or on the package's GitHub Packages page, then fix the version in the `ai-toolkit` script. |
+| `npm error code E404` and `npm error 404 Not Found - GET https://npm.pkg.github.com/@remekgdansk%2f<name> - npm package "<name>" does not exist under owner "remekgdansk"` | The package name in the `ai-toolkit` script is misspelled. Fix it to `@remekgdansk/ai-toolkit-example`. |
 
 ## Releasing
 
