@@ -44,7 +44,7 @@ The author wants to learn the shared-registry distribution pattern: packaging th
 | S-01 | local-install-claude-code   | install the toolkit into `critical-path` with one command and see its skill in Claude Code, in a toolkit-named subfolder | —             | FR-003, FR-004, FR-006, NFR-install-idempotent, US-01 | done        |
 | S-02 | publish-on-release          | cut a version release and have CI publish it to the registry, with a visible failure for a reused version  | —             | FR-001, FR-002                                    | done        |
 | S-03 | install-from-registry       | install a CI-published version into `critical-path`, locally and in its CI, with no token in committed files | S-01, S-02    | FR-003, FR-004, US-01                             | done        |
-| S-04 | safe-repo-refresh           | ask Claude Code in `critical-path` to refresh the repo and delete only branches whose work is already in main, after confirming | S-01          | FR-011, US-01, NFR-no-unmerged-work-lost          | planning |
+| S-04 | safe-repo-refresh           | ask Claude Code in `critical-path` to refresh the repo and delete only branches whose work is already in main, after confirming | S-01          | FR-011, US-01, NFR-no-unmerged-work-lost          | in-progress |
 | S-05 | clean-uninstall             | run the uninstall command and get `critical-path` back exactly as it was before install                    | S-01          | FR-008, FR-006                                    | proposed |
 | S-06 | update-to-new-version       | bump the version, publish, update in `critical-path` and get the changed skill with nothing stale or duplicated | S-03          | FR-007, FR-001                                    | proposed |
 
@@ -124,7 +124,7 @@ None. Each cross-cutting element (package metadata, registry config, test harnes
 - **Unknowns:**
   - How is "changes already in main" decided for squash-merged branches reliably enough that a false positive never deletes real work? — Owner: author (research during `/10x-plan`). Block: no.
 - **Risk:** The only slice that can destroy user work; the safety rules in Business Logic must be verified against a fixture repo before the skill is used on `critical-path`.
-- **Status:** planning
+- **Status:** in-progress
 
 ### S-05: Clean uninstall
 

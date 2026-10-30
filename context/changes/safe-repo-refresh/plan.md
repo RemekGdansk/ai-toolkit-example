@@ -357,13 +357,13 @@ Consumers on `0.1.0` get the new skill by bumping their pinned version and re-ru
 
 #### Automated
 
-- [ ] 1.1 Type check of the bundled script passes
-- [ ] 1.2 Full test suite passes, including R1–R15 and the existing installer tests
-- [ ] 1.3 The script has no imports outside node: built-ins
+- [x] 1.1 Type check of the bundled script passes
+- [x] 1.2 Full test suite passes, including R1–R15 and the existing installer tests
+- [x] 1.3 The script has no imports outside node: built-ins
 
 #### Manual
 
-- [ ] 1.4 plan on this repo prints readable Main/Delete/Keep sections with correct reasons and leaves branch and working tree unchanged
+- [x] 1.4 plan on this repo prints readable Main/Delete/Keep sections with correct reasons and leaves branch and working tree unchanged
 
 ### Phase 2: Delete command and skill flow
 

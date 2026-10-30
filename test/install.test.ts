@@ -16,6 +16,7 @@ const MANIFEST = ".claude/.ai-toolkit-example-manifest.json";
 const TARGET_DIR = ".claude/skills/ai-toolkit-example";
 const PLUGIN_JSON = `${TARGET_DIR}/.claude-plugin/plugin.json`;
 const SKILL_MD = `${TARGET_DIR}/skills/repo-refresh/SKILL.md`;
+const REFRESH_SCRIPT = `${TARGET_DIR}/skills/repo-refresh/scripts/repo-refresh.mjs`;
 
 interface RunResult {
   readonly status: number | null;
@@ -103,6 +104,7 @@ test("1. fresh install into a repo with no .claude/ writes the plugin and a hash
   assert.deepEqual(manifest.files, [
     { path: PLUGIN_JSON, sha256: sha256(pluginSource(".claude-plugin/plugin.json")) },
     { path: SKILL_MD, sha256: sha256(pluginSource("skills/repo-refresh/SKILL.md")) },
+    { path: REFRESH_SCRIPT, sha256: sha256(pluginSource("skills/repo-refresh/scripts/repo-refresh.mjs")) },
   ]);
   assert.ok(manifest.createdDirs.includes(".claude"));
   assert.ok(manifest.createdDirs.includes(".claude/skills"));
@@ -187,7 +189,7 @@ test("6. a managed file no longer shipped is removed with its now-empty created 
   assert.ok(!existsSync(at(root, staleDir)), "now-empty created folder removed");
   assert.ok(existsSync(at(root, SKILL_MD)), "current skill still installed");
   const after = readManifest(root);
-  assert.deepEqual(after.files.map((file) => file.path), [PLUGIN_JSON, SKILL_MD]);
+  assert.deepEqual(after.files.map((file) => file.path), [PLUGIN_JSON, SKILL_MD, REFRESH_SCRIPT]);
   assert.ok(!after.createdDirs.includes(staleDir));
 });
 
