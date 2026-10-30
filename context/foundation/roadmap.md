@@ -41,7 +41,7 @@ The author wants to learn the shared-registry distribution pattern: packaging th
 
 | ID   | Change ID                   | Outcome (user can …)                                                                                       | Prerequisites | PRD refs                                          | Status   |
 | ---- | --------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------- | -------- |
-| S-01 | local-install-claude-code   | install the toolkit into `critical-path` with one command and see its skill in Claude Code, in a toolkit-named subfolder | —             | FR-003, FR-004, FR-006, NFR-install-idempotent, US-01 | ready    |
+| S-01 | local-install-claude-code   | install the toolkit into `critical-path` with one command and see its skill in Claude Code, in a toolkit-named subfolder | —             | FR-003, FR-004, FR-006, NFR-install-idempotent, US-01 | planning |
 | S-02 | publish-on-release          | cut a version release and have CI publish it to the registry, with a visible failure for a reused version  | —             | FR-001, FR-002                                    | ready    |
 | S-03 | install-from-registry       | install a CI-published version into `critical-path`, locally and in its CI, with no token in committed files | S-01, S-02    | FR-003, FR-004, US-01                             | proposed |
 | S-04 | safe-repo-refresh           | ask Claude Code in `critical-path` to refresh the repo and delete only branches whose work is already in main, after confirming | S-01          | FR-011, US-01, NFR-no-unmerged-work-lost          | proposed |
@@ -87,7 +87,7 @@ None. Each cross-cutting element (package metadata, registry config, test harnes
 - **Unknowns:**
   - Does Claude Code's plugin-folder mechanism (shape-notes: a folder with a plugin descriptor loads as a namespaced plugin) satisfy the "toolkit-named subfolder" requirement in `critical-path`, given workspace trust and launch-from-root? — Owner: author (verify during `/10x-plan`). Block: no.
 - **Risk:** Sequenced first because it is the least familiar mechanism and every other slice depends on its manifest; if subfolder discovery fails, FR-004's subfolder requirement has to be revisited before anything ships.
-- **Status:** ready
+- **Status:** planning
 
 ### S-02: Publish on version release
 
