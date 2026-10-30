@@ -1,7 +1,7 @@
 ---
 change_id: install-from-registry
 title: Install from registry
-status: new
+status: plan_reviewed
 created: 2026-10-30
 updated: 2026-10-30
 archived_at: null
