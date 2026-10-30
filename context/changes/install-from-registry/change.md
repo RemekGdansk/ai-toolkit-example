@@ -1,7 +1,7 @@
 ---
 change_id: install-from-registry
 title: Install from registry
-status: plan_reviewed
+status: implementing
 created: 2026-10-30
 updated: 2026-10-30
 archived_at: null
@@ -10,3 +10,7 @@ archived_at: null
 ## Notes
 
 <!-- Free-form notes for this change: links, ad-hoc context, decisions that don't belong in research/frame/plan. -->
+
+- **PAT expiry (no values recorded):** local install PAT (classic, `read:packages`, user `~/.npmrc`) and CI PAT (classic, `read:packages`, `GH_PKG_TOKEN` in `RemekGdansk/critical-path`) both expire **2027-10-30**. Rotation steps are in `critical-path/context/deployment/deploy-plan.md` → "AI toolkit registry token".
+- **Observed E401** (committed `.npmrc` only, `--userconfig /dev/null`): `npm error code E401` / `npm error 401 Unauthorized - GET https://npm.pkg.github.com/@remekgdansk%2fai-toolkit-example - authentication token not provided`.
+- **`npm login` rejects uppercase usernames** (`npm warn Name must be lowercase`, then it prompts again and writes nothing). Enter `remekgdansk`; GitHub Packages ignores the username and authenticates with the PAT.

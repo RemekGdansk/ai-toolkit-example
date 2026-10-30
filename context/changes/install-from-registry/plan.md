@@ -269,21 +269,21 @@ The `ai-toolkit` job skips `npm ci` and browser installs. It only downloads the 
 
 #### Automated
 
-- [ ] 1.1 The local token reads the registry: `npm view @remekgdansk/ai-toolkit-example@0.1.0 version` prints `0.1.0`
-- [ ] 1.2 The committed config alone carries no credentials: `npm view … --userconfig /dev/null` fails with `E401`, message recorded
-- [ ] 1.3 `critical-path/.npmrc` is exactly the scope line
-- [ ] 1.4 `package-lock.json` is unchanged and the toolkit is in no dependency field
-- [ ] 1.5 Clean-slate install succeeds: `npm run ai-toolkit -- install` exits 0 and prints `installed @remekgdansk/ai-toolkit-example@0.1.0 (2 files)`
-- [ ] 1.6 The installed copy came from GitHub Packages (npx cache `resolved` on `npm.pkg.github.com`)
-- [ ] 1.7 Install is idempotent: second run exits 0 with unchanged hashes
-- [ ] 1.8 No tracked file in `critical-path` carries a token
-- [ ] 1.9 `critical-path` still installs without any registry token: `npm ci --userconfig /dev/null` succeeds
+- [x] 1.1 The local token reads the registry: `npm view @remekgdansk/ai-toolkit-example@0.1.0 version` prints `0.1.0`
+- [x] 1.2 The committed config alone carries no credentials: `npm view … --userconfig /dev/null` fails with `E401`, message recorded
+- [x] 1.3 `critical-path/.npmrc` is exactly the scope line
+- [x] 1.4 `package-lock.json` is unchanged and the toolkit is in no dependency field
+- [x] 1.5 Clean-slate install succeeds: `npm run ai-toolkit -- install` exits 0 and prints `installed @remekgdansk/ai-toolkit-example@0.1.0 (2 files)`
+- [x] 1.6 The installed copy came from GitHub Packages (npx cache `resolved` on `npm.pkg.github.com`)
+- [x] 1.7 Install is idempotent: second run exits 0 with unchanged hashes
+- [x] 1.8 No tracked file in `critical-path` carries a token
+- [x] 1.9 `critical-path` still installs without any registry token: `npm ci --userconfig /dev/null` succeeds
 
 #### Manual
 
-- [ ] 1.10 Both PATs are classic, `read:packages` only, with a recorded expiry; `GH_PKG_TOKEN` is listed in `critical-path` secrets
-- [ ] 1.11 Claude Code in `critical-path` lists `ai-toolkit-example@skills-dir` and runs `/ai-toolkit-example:repo-refresh`
-- [ ] 1.12 `.claude/` content outside the toolkit folder and manifest is unchanged after wipe and install
+- [x] 1.10 Both PATs are classic, `read:packages` only, with a recorded expiry; `GH_PKG_TOKEN` is listed in `critical-path` secrets
+- [x] 1.11 Claude Code in `critical-path` lists `ai-toolkit-example@skills-dir` and runs `/ai-toolkit-example:repo-refresh`
+- [x] 1.12 `.claude/` content outside the toolkit folder and manifest is unchanged after wipe and install
 
 ### Phase 2: critical-path CI install job
 
