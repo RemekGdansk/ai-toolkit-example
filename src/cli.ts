@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import process from "node:process";
+import { install } from "./install.js";
 
 const PREFIX = "ai-toolkit-example:";
 
@@ -10,12 +11,6 @@ Commands:
 
 Options:
   -h, --help Show this help`;
-
-// Placeholder until the installer lands; replace with the real install entry point.
-function install(): number {
-  console.error(`${PREFIX} install is not implemented yet`);
-  return 1;
-}
 
 function main(args: readonly string[]): number {
   const [command] = args;

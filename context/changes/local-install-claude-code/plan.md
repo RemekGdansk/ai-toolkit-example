@@ -283,25 +283,25 @@ None. No consumer has an earlier version installed.
 
 #### Automated
 
-- [x] 1.1 Build succeeds and emits an executable entry
-- [x] 1.2 Plugin files validate strictly
-- [x] 1.3 Package contents are exactly the runtime set
-- [x] 1.4 CLI routing works
+- [x] 1.1 Build succeeds and emits an executable entry — 25154b7
+- [x] 1.2 Plugin files validate strictly — 25154b7
+- [x] 1.3 Package contents are exactly the runtime set — 25154b7
+- [x] 1.4 CLI routing works — 25154b7
 
 #### Manual
 
-- [x] 1.5 The SKILL.md description reads as the intended repo-refresh trigger, and its body clearly deletes nothing
+- [x] 1.5 The SKILL.md description reads as the intended repo-refresh trigger, and its body clearly deletes nothing — 25154b7
 
 ### Phase 2: Installer, manifest and guards
 
 #### Automated
 
-- [ ] 2.1 Type check and build are clean
-- [ ] 2.2 All installer scenarios pass
+- [x] 2.1 Type check and build are clean
+- [x] 2.2 All installer scenarios pass
 
 #### Manual
 
-- [ ] 2.3 Conflict and local-edit error messages name every offending path and say what to do next
+- [x] 2.3 Conflict and local-edit error messages name every offending path and say what to do next
 
 ### Phase 3: End-to-end check in critical-path
 
