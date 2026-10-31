@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -193,7 +193,13 @@ test("U7. a consumer file inside a created folder is kept with its folder, which
 
   assertExit(result, 0);
   assert.equal(readFileSync(at(root, consumerFile), "utf8"), "mine\n");
-  assert.ok(result.stdout.includes(`kept ${consumerDir}/: it holds files ai-toolkit-example did not install`), result.stdout);
+  assert.ok(result.stdout.includes(`kept ${consumerDir}/: it holds files ai-toolkit-example did not install\n`), result.stdout);
+  assert.ok(
+    result.stdout.includes(
+      `kept ${TARGET_DIR}/: it holds files ai-toolkit-example did not install; move them out before installing again\n`,
+    ),
+    result.stdout,
+  );
   for (const relative of [PLUGIN_JSON, SKILL_MD, REFRESH_SCRIPT, MANIFEST]) {
     assert.ok(!existsSync(at(root, relative)), `${relative} removed`);
   }
@@ -222,6 +228,36 @@ test("U8. a malformed or foreign manifest exits 1 and removes nothing", (t) => {
     assert.match(result.stderr, message, `${name}: ${result.stderr}`);
     assert.match(result.stderr, /nothing was removed/, `${name}: ${result.stderr}`);
     assert.equal(hashTree(root), before, `${name}: folder unchanged`);
+  }
+});
+
+test("U8b. a manifest listing paths outside the plugin folder exits 1 and removes nothing", (t) => {
+  // The hash matches, so only manifest path validation keeps uninstall from deleting the consumer's file.
+  const settings = ".claude/settings.json";
+  const settingsContent = '{ "theme": "dark" }\n';
+  const cases: { name: string; files: { path: string; sha256: string }[]; createdDirs: string[] }[] = [
+    { name: "consumer file in .claude", files: [{ path: settings, sha256: sha256(settingsContent) }], createdDirs: [] },
+    { name: "foreign created folder", files: [], createdDirs: [".claude/other"] },
+  ];
+  for (const { name, files, createdDirs } of cases) {
+    const root = makeConsumer(t);
+    assertExit(run(root, "install"), 0);
+    writeAt(root, settings, settingsContent);
+    mkdirSync(at(root, ".claude/other"));
+    const manifest = readManifest(root);
+    manifest.files.push(...files);
+    manifest.createdDirs.push(...createdDirs);
+    writeFileSync(at(root, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+    const before = hashTree(root);
+
+    const result = run(root, "uninstall");
+
+    assertExit(result, 1);
+    assert.match(result.stderr, /unsafe or malformed path/, `${name}: ${result.stderr}`);
+    assert.match(result.stderr, /nothing was removed/, `${name}: ${result.stderr}`);
+    assert.equal(hashTree(root), before, `${name}: folder unchanged`);
+    assert.ok(existsSync(at(root, settings)), `${name}: consumer file kept`);
+    assert.ok(existsSync(at(root, ".claude/other")), `${name}: consumer folder kept`);
   }
 });
 
@@ -256,8 +292,10 @@ test("U9. a symlinked .claude/skills or manifest exits 1 and nothing outside the
     const result = run(root, "uninstall");
 
     assertExit(result, 1);
+    assert.match(result.stderr, /symlinks or not regular files/);
     assert.ok(result.stderr.includes(MANIFEST), result.stderr);
     assert.equal(hashTree(outside), outsideBefore, "file outside the repo kept");
+    assert.ok(lstatSync(at(root, MANIFEST)).isSymbolicLink(), "manifest symlink kept");
     for (const relative of [PLUGIN_JSON, SKILL_MD, REFRESH_SCRIPT]) {
       assert.ok(existsSync(at(root, relative)), `${relative} kept`);
     }

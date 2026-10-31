@@ -30,7 +30,7 @@ The package is published to GitHub Packages as `@remekgdansk/ai-toolkit-example`
 
    ```json
    "scripts": {
-     "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.2.1"
+     "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.3.0"
    }
    ```
 
@@ -42,7 +42,7 @@ The package is published to GitHub Packages as `@remekgdansk/ai-toolkit-example`
    npm run ai-toolkit -- install
    ```
 
-   On success it prints `installed @remekgdansk/ai-toolkit-example@0.2.1 (3 files)`, the command to invoke the skill, and a reminder to reload plugins. It exits 0.
+   On success it prints `installed @remekgdansk/ai-toolkit-example@0.3.0 (3 files)`, the command to invoke the skill, and a reminder to reload plugins. It exits 0.
 
 When the token expires, create a new one and re-run the `npm login` command.
 
@@ -112,12 +112,12 @@ For developing the toolkit, install it from a tarball instead of the registry.
    npm pack
    ```
 
-   This creates `remekgdansk-ai-toolkit-example-0.2.1.tgz`.
+   This creates `remekgdansk-ai-toolkit-example-0.3.0.tgz`.
 
 2. In the consumer repo, add it as a dev dependency:
 
    ```sh
-   npm i -D <path-to-this-repo>/remekgdansk-ai-toolkit-example-0.2.1.tgz
+   npm i -D <path-to-this-repo>/remekgdansk-ai-toolkit-example-0.3.0.tgz
    ```
 
    With npm 12 or later you may see `npm warn install-scripts ... blocked because they are not covered by allowScripts`. Those packages are the consumer's own dependencies; this package has no install scripts, so the warning does not affect it.
@@ -181,7 +181,7 @@ Install exits 1 in the cases below. It checks all but the last before its first 
 | `unexpected error: ...` | Fix the reported problem (for example, file permissions), then re-run. |
 | `install failed while writing files: ...` | Re-run install. It reports anything left in an unexpected state. |
 
-An unknown command, or any argument after `install`, exits 2 and prints the usage. `npm run ai-toolkit -- --help` prints the usage and exits 0.
+An unknown command, or any argument after `install` or `uninstall`, exits 2 and prints the usage. `npm run ai-toolkit -- --help` prints the usage and exits 0.
 
 npm can fail before the installer runs. Then nothing is written either:
 
@@ -190,6 +190,51 @@ npm can fail before the installer runs. Then nothing is written either:
 | `npm error code E401` and `npm error 401 Unauthorized - GET https://npm.pkg.github.com/@remekgdansk%2fai-toolkit-example - authentication token not provided` | The token is missing, lacks `read:packages`, has expired or was revoked. Locally, create a new token and re-run the `npm login` command. In CI, replace the `GH_PKG_TOKEN` secret. |
 | `npm error code ETARGET` and `npm error notarget No matching version found for @remekgdansk/ai-toolkit-example@<version>.` | The pinned version is not published. Check the published versions with `npm view @remekgdansk/ai-toolkit-example versions` or on the package's GitHub Packages page, then fix the version in the `ai-toolkit` script. |
 | `npm error code E404` and `npm error 404 Not Found - GET https://npm.pkg.github.com/@remekgdansk%2f<name> - npm package "<name>" does not exist under owner "remekgdansk"` | The package name in the `ai-toolkit` script is misspelled. Fix it to `@remekgdansk/ai-toolkit-example`. |
+
+## Uninstall
+
+From the consumer repo root, run:
+
+```sh
+npm run ai-toolkit -- uninstall
+```
+
+With a local build, run `npx ai-toolkit-example uninstall` instead.
+
+The pinned version must be 0.3.0 or later. Older versions have no `uninstall` command and exit 2 with `unknown command "uninstall"`. To remove an install made by an older version, first bump the pin in the `ai-toolkit` script to 0.3.0 or later (with a local build, install the newer tarball), then run uninstall. You don't need to re-install first: uninstall reads the manifest the older install wrote.
+
+Uninstall removes exactly what the manifest records:
+
+- the files it lists under `.claude/skills/ai-toolkit-example/`;
+- the manifest, `.claude/.ai-toolkit-example-manifest.json`;
+- the folders install created, once they are empty.
+
+Everything else stays, including other skills in `.claude/skills/`. A folder install created that still holds your files stays too, and uninstall reports it as `kept <dir>/: it holds files ai-toolkit-example did not install`. When the kept folder is `.claude/skills/ai-toolkit-example/` itself, the line adds `move them out before installing again`: install refuses that folder once the manifest is gone.
+
+On success it prints `uninstalled @remekgdansk/ai-toolkit-example@0.3.0 (3 files removed) from .claude/skills/ai-toolkit-example/`, then any `kept` folders and the next steps. It exits 0. The version is the one the manifest records, so an install made by 0.2.1 is reported as `@0.2.1`.
+
+If there is no manifest and no `.claude/skills/ai-toolkit-example/`, it prints `not installed in <dir>; nothing removed` and exits 0.
+
+Uninstall exits 1 in the cases below. It checks all but the last before its first removal, so in those cases nothing is removed:
+
+| Message | Remedy |
+| --- | --- |
+| `no package.json in <dir>; run from the consumer repo root` | `cd` to the consumer repo root and re-run. |
+| `uninstall stopped; nothing was removed.` and `these installed files were changed after install:` | Move the listed files out of `.claude/skills/ai-toolkit-example/` (or delete them), then re-run. A managed file replaced by a symlink or a folder is listed here too. |
+| `uninstall stopped; nothing was removed.` and `these paths are not safe to remove through:` | The listed paths are symlinked folders on the way to a managed file (such as `.claude` or `.claude/skills`), or a manifest that is not a regular file. Removing through them could delete files outside the repo. Replace or remove them, then re-run. |
+| `.claude/.ai-toolkit-example-manifest.json` cannot be read, is not valid JSON, is invalid, or belongs to another package, followed by `nothing was removed.` | Restore the manifest to the file install wrote, or delete it together with `.claude/skills/ai-toolkit-example/` yourself. |
+| `.claude/skills/ai-toolkit-example/ exists but .claude/.ai-toolkit-example-manifest.json does not; ...` | The folder is not managed by the toolkit. Delete it yourself if it is a leftover install. |
+| `unexpected error: ...` | Fix the reported problem (for example, file permissions), then re-run. |
+| `uninstall failed while removing files: ...` | Fix the reported problem, then re-run uninstall. Anything already removed is skipped, because the manifest is removed after every managed file. |
+
+Uninstall touches only what install added. After it, do these by hand:
+
+1. Run `/reload-plugins` in Claude Code (or restart it from the repo root).
+2. If you no longer want the toolkit, also remove:
+   - the `ai-toolkit` script from `package.json` (with a local build, run `npm uninstall @remekgdansk/ai-toolkit-example` instead);
+   - the `@remekgdansk:registry=https://npm.pkg.github.com` line from `.npmrc`;
+   - the `ai-toolkit` CI job;
+   - the `GH_PKG_TOKEN` secret, with `gh secret delete GH_PKG_TOKEN --repo <owner>/<repo>`.
 
 ## Releasing
 

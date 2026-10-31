@@ -108,11 +108,13 @@ export function uninstall(): number {
 
   // ---- Report --------------------------------------------------------------
 
-  const kept = [...manifest.createdDirs].sort(byDepthAscending).filter((dir) => lstatOf(abs(root, dir)) !== undefined);
+  const kept = [...manifest.createdDirs].sort(byDepthAscending).filter((dir) => lstatOf(abs(root, dir))?.isDirectory());
 
   console.log(`${PREFIX} uninstalled ${pkg.name}@${manifest.version} (${removed} files removed) from ${TARGET_DIR}/`);
   for (const dir of kept) {
-    console.log(`${PREFIX} kept ${dir}/: it holds files ai-toolkit-example did not install`);
+    // Install refuses a plugin folder without a manifest, so say how to get back to installable.
+    const hint = dir === TARGET_DIR ? "; move them out before installing again" : "";
+    console.log(`${PREFIX} kept ${dir}/: it holds files ai-toolkit-example did not install${hint}`);
   }
   console.log(
     `${PREFIX} next: run /reload-plugins in Claude Code (or restart it). If you no longer need the toolkit, remove the ai-toolkit script from package.json and the @remekgdansk line from .npmrc.`,

@@ -293,20 +293,20 @@ Installs made by 0.1.x/0.2.x are uninstalled by 0.3.0 unchanged, because the man
 
 #### Automated
 
-- [x] 1.1 Build, plugin typecheck and the whole suite pass, including install tests 1–18 unchanged: `npm test`
-- [x] 1.2 `test/uninstall.test.ts` contains U1–U15 and all pass
-- [x] 1.3 `src/install.ts` no longer defines its own path/stat helpers
+- [x] 1.1 Build, plugin typecheck and the whole suite pass, including install tests 1–18 unchanged: `npm test` — 887f0a8
+- [x] 1.2 `test/uninstall.test.ts` contains U1–U15 and all pass — 887f0a8
+- [x] 1.3 `src/install.ts` no longer defines its own path/stat helpers — 887f0a8
 
 #### Manual
 
-- [x] 1.4 Scratch-repo install then uninstall prints the specified lines and leaves no plugin folder or manifest
+- [x] 1.4 Scratch-repo install then uninstall prints the specified lines and leaves no plugin folder or manifest — 887f0a8
 
 ### Phase 2: Release 0.3.0 and verify in critical-path
 
 #### Automated
 
-- [ ] 2.1 Test suite passes with the bumped versions: `npm test`
-- [ ] 2.2 `package.json` and `plugin.json` both give `0.3.0`
+- [x] 2.1 Test suite passes with the bumped versions: `npm test`
+- [x] 2.2 `package.json` and `plugin.json` both give `0.3.0`
 - [ ] 2.3 The `Publish AI Toolkit` release run for `v0.3.0` succeeds through the publish job
 - [ ] 2.4 `critical-path`'s `ai-toolkit` CI job passes on the repoint PR
 
