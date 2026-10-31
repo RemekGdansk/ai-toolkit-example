@@ -86,6 +86,34 @@ function pluginSource(relative: string): Buffer {
   return readFileSync(path.join(REPO_ROOT, "plugin", ...relative.split("/")));
 }
 
+const CURRENT_VERSION = (JSON.parse(readFileSync(path.join(REPO_ROOT, "package.json"), "utf8")) as { version: string }).version;
+
+/** Every file under `relative`, as sorted POSIX paths relative to `root`. */
+function listFiles(root: string, relative: string): string[] {
+  const files: string[] = [];
+  const walk = (dir: string, prefix: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const childRelative = `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) {
+        walk(path.join(dir, entry.name), childRelative);
+      } else {
+        files.push(childRelative);
+      }
+    }
+  };
+  walk(at(root, relative), relative);
+  return files.sort();
+}
+
+/** Consumer paths of every file the package ships, sorted. */
+function shippedTargets(): string[] {
+  return listFiles(REPO_ROOT, "plugin").map((file) => `${TARGET_DIR}${file.slice("plugin".length)}`);
+}
+
+function writeManifestJson(root: string, manifest: ManifestJson): void {
+  writeFileSync(at(root, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
 function assertExit(result: RunResult, expected: number): void {
   assert.equal(result.status, expected, `exit ${String(result.status)}\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
 }
@@ -183,8 +211,15 @@ test("6. a managed file no longer shipped is removed with its now-empty created 
   manifest.createdDirs.push(staleDir);
   writeFileSync(at(root, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
 
-  assertExit(run(root, "install"), 0);
+  const result = run(root, "install");
 
+  assertExit(result, 0);
+  assert.ok(
+    result.stdout.includes(
+      `reinstalled ${PACKAGE_NAME} ${CURRENT_VERSION} -> ${CURRENT_VERSION} (0 changed, 0 added, 1 removed, 3 unchanged) in ${TARGET_DIR}/`,
+    ),
+    result.stdout,
+  );
   assert.ok(!existsSync(at(root, staleFile)), "stale file removed");
   assert.ok(!existsSync(at(root, staleDir)), "now-empty created folder removed");
   assert.ok(existsSync(at(root, SKILL_MD)), "current skill still installed");
@@ -392,6 +427,13 @@ test("17. a re-run after an interrupted upgrade completes instead of reporting a
   const result = run(root, "install");
 
   assertExit(result, 0);
+  // Counts compare the manifest with the payload, so the file already holding the new content still counts as changed.
+  assert.ok(
+    result.stdout.includes(
+      `reinstalled ${PACKAGE_NAME} ${CURRENT_VERSION} -> ${CURRENT_VERSION} (1 changed, 0 added, 0 removed, 2 unchanged) in ${TARGET_DIR}/`,
+    ),
+    result.stdout,
+  );
   const shipped = pluginSource("skills/repo-refresh/SKILL.md");
   assert.deepEqual(readFileSync(at(root, SKILL_MD)), shipped);
   assert.equal(readManifest(root).files.find((file) => file.path === SKILL_MD)?.sha256, sha256(shipped));
@@ -407,4 +449,126 @@ test("18. an unexpected I/O error exits 1 with a prefixed message and no stack t
   assertExit(result, 1);
   assert.match(result.stderr, /^ai-toolkit-example: unexpected error: .*EACCES/);
   assert.doesNotMatch(result.stderr, /\n\s+at /);
+});
+
+/** A fresh install rewritten to look like an older version: an extra skill, old SKILL.md, no refresh script. */
+function simulateOldInstall(root: string, version: string): void {
+  const manifest = readManifest(root);
+  const oldSkillDir = `${TARGET_DIR}/skills/old-skill`;
+  const oldSkill = { path: `${oldSkillDir}/SKILL.md`, content: "---\nname: old-skill\n---\nretired skill\n" };
+  const oldScript = { path: `${oldSkillDir}/scripts/old.mjs`, content: "console.log('old');\n" };
+  const oldSkillMd = "---\nname: repo-refresh\n---\nversion 0.0.1\n";
+  const refreshScriptsDir = `${TARGET_DIR}/skills/repo-refresh/scripts`;
+
+  writeAt(root, oldSkill.path, oldSkill.content);
+  writeAt(root, oldScript.path, oldScript.content);
+  writeFileSync(at(root, SKILL_MD), oldSkillMd);
+  rmSync(at(root, refreshScriptsDir), { recursive: true });
+
+  manifest.version = version;
+  manifest.files = manifest.files
+    .filter((file) => file.path !== REFRESH_SCRIPT)
+    .map((file) => (file.path === SKILL_MD ? { path: SKILL_MD, sha256: sha256(oldSkillMd) } : file));
+  manifest.files.push(
+    { path: oldSkill.path, sha256: sha256(oldSkill.content) },
+    { path: oldScript.path, sha256: sha256(oldScript.content) },
+  );
+  manifest.createdDirs = manifest.createdDirs.filter((dir) => dir !== refreshScriptsDir);
+  manifest.createdDirs.push(oldSkillDir, `${oldSkillDir}/scripts`);
+  writeManifestJson(root, manifest);
+}
+
+test("19. a full update from an older version removes a dropped skill and leaves exactly the shipped payload", (t) => {
+  const root = makeConsumer(t);
+  writeAt(root, ".claude/skills/other/SKILL.md", "---\nname: other\n---\nconsumer skill\n");
+  writeAt(root, "CLAUDE.md", "# Consumer rules\n");
+  assertExit(run(root, "install"), 0);
+  simulateOldInstall(root, "0.0.1");
+  const consumerPaths = ["package.json", "CLAUDE.md", ".claude/skills/other/SKILL.md"];
+  const consumerBefore = consumerPaths.map((relative) => readFileSync(at(root, relative)));
+
+  const result = run(root, "install");
+
+  assertExit(result, 0);
+  assert.ok(
+    result.stdout.includes(
+      `updated ${PACKAGE_NAME} 0.0.1 -> ${CURRENT_VERSION} (1 changed, 1 added, 2 removed, 1 unchanged) in ${TARGET_DIR}/`,
+    ),
+    result.stdout,
+  );
+  assert.match(result.stdout, /\/reload-plugins/);
+  assert.ok(!existsSync(at(root, `${TARGET_DIR}/skills/old-skill`)), "dropped skill folder removed entirely");
+  assert.deepEqual(listFiles(root, TARGET_DIR), shippedTargets(), "exactly the shipped payload, no leftovers");
+  for (const target of shippedTargets()) {
+    assert.deepEqual(readFileSync(at(root, target)), pluginSource(target.slice(TARGET_DIR.length + 1)), target);
+  }
+  const manifest = readManifest(root);
+  assert.equal(manifest.version, CURRENT_VERSION);
+  assert.deepEqual(manifest.files.map((file) => file.path), shippedTargets());
+  assert.ok(!manifest.createdDirs.some((dir) => dir.includes("old-skill")), "dropped skill folders no longer recorded");
+  consumerPaths.forEach((relative, index) => assert.deepEqual(readFileSync(at(root, relative)), consumerBefore[index], relative));
+});
+
+test("20. a same-version re-run reports nothing changed and leaves the folder unchanged", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  const before = hashTree(root);
+
+  const result = run(root, "install");
+
+  assertExit(result, 0);
+  assert.ok(result.stdout.includes(`already at ${PACKAGE_NAME}@${CURRENT_VERSION}; nothing changed`), result.stdout);
+  assert.doesNotMatch(result.stdout, /\/reload-plugins/);
+  assert.equal(hashTree(root), before);
+});
+
+test("21. installing over a newer recorded version reports a downgrade", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  const manifest = readManifest(root);
+  manifest.version = "99.0.0";
+  writeManifestJson(root, manifest);
+
+  const result = run(root, "install");
+
+  assertExit(result, 0);
+  assert.ok(result.stdout.includes(`downgraded ${PACKAGE_NAME} 99.0.0 -> ${CURRENT_VERSION}`), result.stdout);
+  assert.equal(readManifest(root).version, CURRENT_VERSION);
+});
+
+test("22. an update over a locally edited file refuses and writes nothing", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  const edited = "---\nname: repo-refresh\n---\nmy local edit\n";
+  const manifest = readManifest(root);
+  manifest.version = "0.0.1";
+  manifest.files = manifest.files.map((file) =>
+    file.path === SKILL_MD ? { path: SKILL_MD, sha256: sha256("---\nname: repo-refresh\n---\nversion 0.0.1\n") } : file,
+  );
+  writeManifestJson(root, manifest);
+  writeFileSync(at(root, SKILL_MD), edited);
+  const before = hashTree(root);
+
+  const result = run(root, "install");
+
+  assertExit(result, 1);
+  assert.ok(result.stderr.includes(SKILL_MD), result.stderr);
+  assert.match(result.stderr, /revert/);
+  assert.doesNotMatch(result.stdout, /updated/);
+  assert.equal(readFileSync(at(root, SKILL_MD), "utf8"), edited);
+  assert.equal(hashTree(root), before);
+});
+
+test("23. a recorded version that is not plain x.y.z reports a replacement", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  const manifest = readManifest(root);
+  manifest.version = "local-build";
+  writeManifestJson(root, manifest);
+
+  const result = run(root, "install");
+
+  assertExit(result, 0);
+  assert.ok(result.stdout.includes(`replaced ${PACKAGE_NAME} local-build -> ${CURRENT_VERSION} (`), result.stdout);
+  assert.equal(readManifest(root).version, CURRENT_VERSION);
 });

@@ -1,6 +1,6 @@
 ---
 name: repo-refresh
-description: Refresh the local repository - update main from the remote without switching branches, then clean up local branches whose work is already in main (merged or squash-merged), deleting only after the user confirms the list. Use when the user asks to refresh, tidy or clean up the repo, sync main, or prune merged local branches.
+description: Refresh the local repository - update main from the remote without switching branches, then clean up local branches whose work is already in main (merged or squash-merged), deleting only after the user confirms the list. Use when the user asks to refresh, tidy or clean up the repo, sync main, prune or delete merged local branches, or clean up after a pull request was merged.
 allowed-tools: Bash(node ${CLAUDE_SKILL_DIR}/scripts/repo-refresh.mjs plan)
 ---
 

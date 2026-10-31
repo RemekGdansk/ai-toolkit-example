@@ -101,6 +101,10 @@ export function install(): number {
     return { targetPath: file.targetPath, content, sha256: hash, needsWrite: currentHashes.get(file.targetPath) !== hash };
   });
 
+  // Counts compare the previous manifest with the new payload, not the disk, so an interrupted
+  // upgrade (file already holding the new content) still reports the file as changed.
+  const counts = countChanges(previousFiles, planned, staleFiles.length);
+
   // ---- Apply ---------------------------------------------------------------
 
   try {
@@ -144,14 +148,70 @@ export function install(): number {
       folder === "skills" && name !== undefined && file === "SKILL.md" && rest.length === 0 ? [name] : [],
     );
 
-  console.log(`${PREFIX} installed ${pkg.name}@${pkg.version} (${planned.length} files) into ${TARGET_DIR}/`);
+  const noOp = previous?.version === pkg.version && counts.changed + counts.added + counts.removed === 0;
+  if (previous === undefined) {
+    console.log(`${PREFIX} installed ${pkg.name}@${pkg.version} (${planned.length} files) into ${TARGET_DIR}/`);
+  } else if (noOp) {
+    console.log(`${PREFIX} already at ${pkg.name}@${pkg.version}; nothing changed in ${TARGET_DIR}/`);
+  } else {
+    const { changed, added, removed, unchanged } = counts;
+    console.log(
+      `${PREFIX} ${transitionVerb(previous.version, pkg.version)} ${pkg.name} ${previous.version} -> ${pkg.version} ` +
+        `(${changed} changed, ${added} added, ${removed} removed, ${unchanged} unchanged) in ${TARGET_DIR}/`,
+    );
+  }
   for (const skill of skills) {
     console.log(`${PREFIX} invoke it in Claude Code as /${PLUGIN_NAME}:${skill}`);
   }
-  console.log(
-    `${PREFIX} next: run /reload-plugins in Claude Code (or restart Claude Code from the repo root), and accept the workspace trust prompt so the project plugin loads`,
-  );
+  if (!noOp) {
+    console.log(
+      `${PREFIX} next: run /reload-plugins in Claude Code (or restart Claude Code from the repo root), and accept the workspace trust prompt so the project plugin loads`,
+    );
+  }
   return 0;
+}
+
+interface ChangeCounts {
+  readonly changed: number;
+  readonly added: number;
+  readonly removed: number;
+  readonly unchanged: number;
+}
+
+/** Previous manifest (path -> recorded hash) against the planned payload; `removed` is the stale-file count. */
+function countChanges(previousFiles: ReadonlyMap<string, string>, planned: readonly PlannedFile[], removed: number): ChangeCounts {
+  let changed = 0;
+  let added = 0;
+  let unchanged = 0;
+  for (const file of planned) {
+    const recorded = previousFiles.get(file.targetPath);
+    if (recorded === undefined) {
+      added += 1;
+    } else if (recorded === file.sha256) {
+      unchanged += 1;
+    } else {
+      changed += 1;
+    }
+  }
+  return { changed, added, removed, unchanged };
+}
+
+const PLAIN_VERSION = /^(\d+)\.(\d+)\.(\d+)$/;
+
+/** How the version moved: numeric x.y.z comparison, or string equality when either is not plain x.y.z. */
+function transitionVerb(from: string, to: string): "updated" | "downgraded" | "reinstalled" | "replaced" {
+  const a = PLAIN_VERSION.exec(from);
+  const b = PLAIN_VERSION.exec(to);
+  if (a === null || b === null) {
+    return from === to ? "reinstalled" : "replaced";
+  }
+  for (let i = 1; i <= 3; i += 1) {
+    const diff = Number(b[i]) - Number(a[i]);
+    if (diff !== 0) {
+      return diff > 0 ? "updated" : "downgraded";
+    }
+  }
+  return "reinstalled";
 }
 
 function printGuardFailure(localEdits: readonly string[], conflicts: readonly string[]): void {
