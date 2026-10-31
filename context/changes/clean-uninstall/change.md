@@ -1,7 +1,7 @@
 ---
 change_id: clean-uninstall
 title: Clean uninstall
-status: implemented
+status: impl_reviewed
 created: 2026-10-30
 updated: 2026-10-31
 archived_at: null

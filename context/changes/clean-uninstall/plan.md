@@ -293,13 +293,13 @@ Installs made by 0.1.x/0.2.x are uninstalled by 0.3.0 unchanged, because the man
 
 #### Automated
 
-- [x] 1.1 Build, plugin typecheck and the whole suite pass, including install tests 1–18 unchanged: `npm test` — 887f0a8
-- [x] 1.2 `test/uninstall.test.ts` contains U1–U15 and all pass — 887f0a8
-- [x] 1.3 `src/install.ts` no longer defines its own path/stat helpers — 887f0a8
+- [x] 1.1 Build, plugin typecheck and the whole suite pass, including install tests 1–18 unchanged: `npm test` — 95fd58c
+- [x] 1.2 `test/uninstall.test.ts` contains U1–U15 and all pass — 95fd58c
+- [x] 1.3 `src/install.ts` no longer defines its own path/stat helpers — 95fd58c
 
 #### Manual
 
-- [x] 1.4 Scratch-repo install then uninstall prints the specified lines and leaves no plugin folder or manifest — 887f0a8
+- [x] 1.4 Scratch-repo install then uninstall prints the specified lines and leaves no plugin folder or manifest — 95fd58c
 
 ### Phase 2: Release 0.3.0 and verify in critical-path
 

@@ -29,7 +29,7 @@ export function uninstall(): number {
     if (error instanceof ManifestError) {
       printError(error.message);
       printError(
-        `nothing was removed. Restore ${MANIFEST_PATH} to the file install wrote, or delete it together with ${TARGET_DIR}/.`,
+        `nothing was removed. Restore ${MANIFEST_PATH} to the file install wrote, or move out any files you changed or added in ${TARGET_DIR}/, then delete it together with that folder.`,
       );
       return 1;
     }
@@ -108,13 +108,20 @@ export function uninstall(): number {
 
   // ---- Report --------------------------------------------------------------
 
-  const kept = [...manifest.createdDirs].sort(byDepthAscending).filter((dir) => lstatOf(abs(root, dir))?.isDirectory());
+  const leftover = [...manifest.createdDirs]
+    .sort(byDepthAscending)
+    .map((dir) => ({ dir, stats: lstatOf(abs(root, dir)) }))
+    .filter(({ stats }) => stats !== undefined);
 
   console.log(`${PREFIX} uninstalled ${pkg.name}@${manifest.version} (${removed} files removed) from ${TARGET_DIR}/`);
-  for (const dir of kept) {
-    // Install refuses a plugin folder without a manifest, so say how to get back to installable.
-    const hint = dir === TARGET_DIR ? "; move them out before installing again" : "";
-    console.log(`${PREFIX} kept ${dir}/: it holds files ai-toolkit-example did not install${hint}`);
+  for (const { dir, stats } of leftover) {
+    if (stats?.isDirectory()) {
+      // Install refuses a plugin folder without a manifest, so say how to get back to installable.
+      const hint = dir === TARGET_DIR ? "; move them out before installing again" : "";
+      console.log(`${PREFIX} kept ${dir}/: it holds files ai-toolkit-example did not install${hint}`);
+    } else {
+      console.log(`${PREFIX} left ${dir}: it is no longer a folder; remove it before installing again`);
+    }
   }
   console.log(
     `${PREFIX} next: run /reload-plugins in Claude Code (or restart it). If you no longer need the toolkit, remove the ai-toolkit script from package.json and the @remekgdansk line from .npmrc.`,

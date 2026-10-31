@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -207,6 +207,24 @@ test("U7. a consumer file inside a created folder is kept with its folder, which
   assert.ok(!existsSync(at(root, `${consumerDir}/scripts`)), "emptied created folder removed");
 });
 
+test("U7b. a plugin folder replaced by a file is left in place and reported", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  rmSync(at(root, TARGET_DIR), { recursive: true });
+  writeFileSync(at(root, TARGET_DIR), "mine\n");
+
+  const result = run(root, "uninstall");
+
+  assertExit(result, 0);
+  assert.equal(readFileSync(at(root, TARGET_DIR), "utf8"), "mine\n");
+  assert.ok(!existsSync(at(root, MANIFEST)), "manifest removed");
+  assert.ok(
+    result.stdout.includes(`left ${TARGET_DIR}: it is no longer a folder; remove it before installing again\n`),
+    result.stdout,
+  );
+  assert.ok(!result.stdout.includes(`kept ${TARGET_DIR}/`), result.stdout);
+});
+
 test("U8. a malformed or foreign manifest exits 1 and removes nothing", (t) => {
   const cases: { name: string; content: string; message: RegExp }[] = [
     { name: "malformed", content: "{ not json", message: /not valid JSON/ },
@@ -359,6 +377,30 @@ test("U12. a re-run after an interrupted uninstall finishes the removal", (t) =>
   const result = run(root, "uninstall");
 
   assertExit(result, 0);
+  assert.equal(hashTree(root), before);
+});
+
+test("U16. a removal error exits 1, keeps the manifest, and a re-run finishes", (t) => {
+  const root = makeConsumer(t);
+  const before = hashTree(root);
+  assertExit(run(root, "install"), 0);
+  const scriptsDir = at(root, `${TARGET_DIR}/skills/repo-refresh/scripts`);
+  chmodSync(scriptsDir, 0o555);
+  // Lets the temp folder be removed if an assertion fails while the folder is read-only.
+  t.after(() => existsSync(scriptsDir) && chmodSync(scriptsDir, 0o755));
+
+  const failed = run(root, "uninstall");
+
+  assertExit(failed, 1);
+  assert.match(failed.stderr, /^ai-toolkit-example: uninstall failed while removing files: .*EACCES/);
+  assert.match(failed.stderr, /re-run uninstall; anything already removed is skipped\./);
+  assert.ok(existsSync(at(root, MANIFEST)), "manifest kept for the re-run");
+  assert.ok(existsSync(at(root, REFRESH_SCRIPT)), "file that could not be removed is still there");
+
+  chmodSync(scriptsDir, 0o755);
+  const rerun = run(root, "uninstall");
+
+  assertExit(rerun, 0);
   assert.equal(hashTree(root), before);
 });
 
