@@ -119,3 +119,46 @@ A second run printed `already at @remekgdansk/ai-toolkit-example@0.4.0; nothing 
 ### Claude Code (Progress 2.9)
 
 Confirmed by the author: in Claude Code from `critical-path`, after `/reload-plugins`, the `repo-refresh` description showed the new "clean up after a pull request was merged" wording, and `/ai-toolkit-example:repo-refresh` ran `plan` normally.
+
+## critical-path update 0.4.0 -> 0.4.1
+
+Review fixes F1 and F3 shipped in `0.4.1` (RemekGdansk/ai-toolkit-example#14, merged as `ccda861`, tag `v0.4.1`, `Publish AI Toolkit` release run https://github.com/RemekGdansk/ai-toolkit-example/actions/runs/41195904261, success; `npm view` lists `0.4.1`).
+
+On 2026-10-31, in `critical-path` (`main` at `8f02311`, pinned to 0.4.0, manifest at `0.4.0` with 3 files), snapshot B was taken with the same script (1044 entries). On branch `ai-toolkit-0.4.1` the pin was changed to `0.4.1` and `npm run ai-toolkit -- install` printed:
+
+```text
+ai-toolkit-example: updated @remekgdansk/ai-toolkit-example 0.4.0 -> 0.4.1 (1 changed, 0 added, 0 removed, 2 unchanged) in .claude/skills/ai-toolkit-example/
+ai-toolkit-example: invoke it in Claude Code as /ai-toolkit-example:repo-refresh
+ai-toolkit-example: next: run /reload-plugins in Claude Code (or restart Claude Code from the repo root), and accept the workspace trust prompt so the project plugin loads
+```
+
+Snapshot C has 1044 entries. B -> C differs only in the manifest, `plugin.json` and the pin. The manifest records `"version": "0.4.1"` with exactly 3 files:
+
+```diff
+16c16
+< F 23505395bee87c84f2bc9927dbbc4381cd3c3ca16f63df00955142cebb58c1f0 ./.claude/.ai-toolkit-example-manifest.json
+---
+> F 8678ffa9d2fa9dab5a47f7d0ad600713786a952f2be0c8eaf82fd3d11015ac6b ./.claude/.ai-toolkit-example-manifest.json
+233c233
+< F 211c8df69e0bfcee9aff35b9de1be31b4bc5f75b6d244424e70abb0082497d89 ./.claude/skills/ai-toolkit-example/.claude-plugin/plugin.json
+---
+> F 8d8ab12ed77cd3c4e4c3582f1ff35f1ab29edcd06c9a795d335336b2b315bc07 ./.claude/skills/ai-toolkit-example/.claude-plugin/plugin.json
+930c930
+< F 911f84aab107b4964221ce59a1dec4371734027c624aee381e07be4c0c5f8dce ./package.json
+---
+> F 5fe27eabff52c297a29e911a85f8d2ac1763898802908f071f14944ffc543355 ./package.json
+```
+
+A second install exited 0, printed `already at @remekgdansk/ai-toolkit-example@0.4.1; nothing changed in .claude/skills/ai-toolkit-example/` with no reload line, and the snapshot still equalled C.
+
+F1 on the real consumer: after `rm -rf .claude/skills/ai-toolkit-example/skills/repo-refresh`, install exited 0 and printed:
+
+```text
+ai-toolkit-example: reinstalled @remekgdansk/ai-toolkit-example 0.4.1 -> 0.4.1 (0 changed, 0 added, 0 removed, 3 unchanged) in .claude/skills/ai-toolkit-example/
+ai-toolkit-example: invoke it in Claude Code as /ai-toolkit-example:repo-refresh
+ai-toolkit-example: next: run /reload-plugins in Claude Code (or restart Claude Code from the repo root), and accept the workspace trust prompt so the project plugin loads
+```
+
+The snapshot afterwards equalled C again.
+
+Repoint PR: RemekGdansk/critical-path#86 (`Pin the AI toolkit to 0.4.1`). `ai-toolkit` job: pass, https://github.com/RemekGdansk/critical-path/actions/runs/41196368030/job/124523234680, which printed `installed @remekgdansk/ai-toolkit-example@0.4.1 (3 files) into .claude/skills/ai-toolkit-example/` and passed the manifest check. `ci`: pass.
