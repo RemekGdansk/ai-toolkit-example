@@ -1,10 +1,10 @@
 ---
 change_id: clean-uninstall
 title: Clean uninstall
-status: impl_reviewed
+status: archived
 created: 2026-10-30
 updated: 2026-10-31
-archived_at: null
+archived_at: 2026-10-31T09:41:42Z
 ---
 
 ## Notes
