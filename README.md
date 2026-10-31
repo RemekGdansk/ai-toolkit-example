@@ -30,7 +30,7 @@ The package is published to GitHub Packages as `@remekgdansk/ai-toolkit-example`
 
    ```json
    "scripts": {
-     "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.4.0"
+     "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.4.1"
    }
    ```
 
@@ -42,7 +42,7 @@ The package is published to GitHub Packages as `@remekgdansk/ai-toolkit-example`
    npm run ai-toolkit -- install
    ```
 
-   On success it prints `installed @remekgdansk/ai-toolkit-example@0.4.0 (3 files)`, the command to invoke the skill, and a reminder to reload plugins. It exits 0.
+   On success it prints `installed @remekgdansk/ai-toolkit-example@0.4.1 (3 files)`, the command to invoke the skill, and a reminder to reload plugins. It exits 0.
 
 When the token expires, create a new one and re-run the `npm login` command.
 
@@ -112,12 +112,12 @@ For developing the toolkit, install it from a tarball instead of the registry.
    npm pack
    ```
 
-   This creates `remekgdansk-ai-toolkit-example-0.4.0.tgz`.
+   This creates `remekgdansk-ai-toolkit-example-0.4.1.tgz`.
 
 2. In the consumer repo, add it as a dev dependency:
 
    ```sh
-   npm i -D <path-to-this-repo>/remekgdansk-ai-toolkit-example-0.4.0.tgz
+   npm i -D <path-to-this-repo>/remekgdansk-ai-toolkit-example-0.4.1.tgz
    ```
 
    With npm 12 or later you may see `npm warn install-scripts ... blocked because they are not covered by allowScripts`. Those packages are the consumer's own dependencies; this package has no install scripts, so the warning does not affect it.
@@ -168,7 +168,7 @@ Nothing else in the consumer repo is touched. Other skills in `.claude/skills/` 
 
 ## Re-running
 
-Running `npm run ai-toolkit -- install` again is safe. With the same package version it exits 0, leaves every file unchanged and prints `already at @remekgdansk/ai-toolkit-example@0.4.0; nothing changed in .claude/skills/ai-toolkit-example/`.
+Running `npm run ai-toolkit -- install` again is safe. With the same package version and every installed file in place, it exits 0, writes nothing and prints `already at @remekgdansk/ai-toolkit-example@0.4.1; nothing changed in .claude/skills/ai-toolkit-example/`. If an installed file was deleted, install restores it and prints a `reinstalled ...` line instead.
 
 Install exits 1 in the cases below. It checks all but the last before its first write, so in those cases nothing is written:
 
@@ -211,9 +211,9 @@ Install reads the manifest the previous version wrote and replaces that version'
 | `installed <name>@<version> (<n> files) into <dir>/` | There was no previous install. |
 | `updated <name> <old> -> <new> (...)` | The new version is higher than the installed one. |
 | `downgraded <name> <old> -> <new> (...)` | The new version is lower than the installed one. |
-| `reinstalled <name> <version> -> <version> (...)` | Same version, but some installed files differed and were restored. |
+| `reinstalled <name> <version> -> <version> (...)` | Same version, but the shipped files differ from what the manifest records (for example a rebuilt local tarball or an interrupted update), or deleted installed files were restored. |
 | `replaced <name> <old> -> <new> (...)` | Either version is not a plain `x.y.z`, so they cannot be compared. |
-| `already at <name>@<version>; nothing changed in <dir>/` | Same version and every file already matches. |
+| `already at <name>@<version>; nothing changed in <dir>/` | Same version, every installed file is in place and matches, and nothing was written. |
 
 The `(...)` part counts the files compared with the previous install, for example:
 
@@ -229,7 +229,7 @@ To roll back, pin the older version in the `ai-toolkit` script and run install a
 
 After updating:
 
-- run `/reload-plugins` in Claude Code (or restart it from the repo root) to load the new skill content;
+- run `/reload-plugins` in Claude Code (or restart it from the repo root) to load the new skill content. Install prints this reminder whenever it wrote files and leaves it out after `already at`;
 - in CI, the `ai-toolkit` job installs the new pin on its next run. Nothing else needs to change.
 
 ## Uninstall
@@ -252,7 +252,7 @@ Uninstall removes exactly what the manifest records:
 
 Everything else stays, including other skills in `.claude/skills/`. A folder install created that still holds your files stays too, and uninstall reports it as `kept <dir>/: it holds files ai-toolkit-example did not install`. When the kept folder is `.claude/skills/ai-toolkit-example/` itself, the line adds `move them out before installing again`: install refuses that folder once the manifest is gone. A folder install created that is now a file or a symlink is left in place too, reported as `left <dir>: it is no longer a folder; remove it before installing again`.
 
-On success it prints `uninstalled @remekgdansk/ai-toolkit-example@0.4.0 (3 files removed) from .claude/skills/ai-toolkit-example/`, then any `kept` folders and the next steps. It exits 0. The version is the one the manifest records, so an install made by 0.2.1 is reported as `@0.2.1`.
+On success it prints `uninstalled @remekgdansk/ai-toolkit-example@0.4.1 (3 files removed) from .claude/skills/ai-toolkit-example/`, then any `kept` folders and the next steps. It exits 0. The version is the one the manifest records, so an install made by 0.2.1 is reported as `@0.2.1`.
 
 If there is no manifest and no `.claude/skills/ai-toolkit-example/`, it prints `not installed in <dir>; nothing removed` and exits 0.
 

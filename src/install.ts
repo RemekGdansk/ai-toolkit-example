@@ -148,7 +148,12 @@ export function install(): number {
       folder === "skills" && name !== undefined && file === "SKILL.md" && rest.length === 0 ? [name] : [],
     );
 
-  const noOp = previous?.version === pkg.version && counts.changed + counts.added + counts.removed === 0;
+  // A missing managed file is rewritten even when the manifest matches the payload, so a no-op
+  // also requires that nothing was written (a missing folder always holds a missing file).
+  const noOp =
+    previous?.version === pkg.version &&
+    counts.changed + counts.added + counts.removed === 0 &&
+    planned.every((file) => !file.needsWrite);
   if (previous === undefined) {
     console.log(`${PREFIX} installed ${pkg.name}@${pkg.version} (${planned.length} files) into ${TARGET_DIR}/`);
   } else if (noOp) {
@@ -211,7 +216,8 @@ function transitionVerb(from: string, to: string): "updated" | "downgraded" | "r
       return diff > 0 ? "updated" : "downgraded";
     }
   }
-  return "reinstalled";
+  // Numerically equal but different strings (leading zeros, components past 2^53).
+  return from === to ? "reinstalled" : "replaced";
 }
 
 function printGuardFailure(localEdits: readonly string[], conflicts: readonly string[]): void {

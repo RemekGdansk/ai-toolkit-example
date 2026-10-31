@@ -80,3 +80,42 @@ Repoint PR: RemekGdansk/critical-path#85 (`Pin the AI toolkit to 0.4.0`), squash
 - `ci`: pass.
 
 Release that this depends on: RemekGdansk/ai-toolkit-example#13 (merged as `c9e989b`), tag `v0.4.0`, `Publish AI Toolkit` release run https://github.com/RemekGdansk/ai-toolkit-example/actions/runs/41193572625 (success). `npm view @remekgdansk/ai-toolkit-example versions` lists `0.4.0`.
+
+## Other checks
+
+Recorded on 2026-10-31 during the implementation review (`reviews/impl-review.md`, F5), after review fixes F1 and F3.
+
+### Break-check (Progress 1.2)
+
+Each behaviour was broken in `src/install.ts` in turn, `npm test` was run, and the file was restored. These tests failed:
+
+| Break | Failing tests |
+| --- | --- |
+| Skip stale-file removal | 6, 15, 19 |
+| Swap the `updated` / `downgraded` comparison | 19, 21 |
+| Never detect the no-op | 20 |
+| Print `/reload-plugins` on the no-op | 20 |
+| Ignore local edits in the guard | 14, 22 |
+| Non-semver equal versions say `reinstalled` instead of `replaced` | 23 |
+| No-op ignores files written in the run (F1) | 24 |
+| Drop the string fallback after the numeric compare (F3) | 25 |
+
+After restoring, `npm test` passed 79/79.
+
+### Scratch consumer (Progress 1.4)
+
+In a fresh scratch consumer, `npx --yes @remekgdansk/ai-toolkit-example@0.3.1 install`, then `npm i -D` the local `0.4.0` tarball of the current build and `npx ai-toolkit-example install`:
+
+```text
+ai-toolkit-example: installed @remekgdansk/ai-toolkit-example@0.3.1 (3 files) into .claude/skills/ai-toolkit-example/
+...
+ai-toolkit-example: updated @remekgdansk/ai-toolkit-example 0.3.1 -> 0.4.0 (2 changed, 0 added, 0 removed, 1 unchanged) in .claude/skills/ai-toolkit-example/
+ai-toolkit-example: invoke it in Claude Code as /ai-toolkit-example:repo-refresh
+ai-toolkit-example: next: run /reload-plugins in Claude Code (or restart Claude Code from the repo root), and accept the workspace trust prompt so the project plugin loads
+```
+
+A second run printed `already at @remekgdansk/ai-toolkit-example@0.4.0; nothing changed in .claude/skills/ai-toolkit-example/` with no reload line. After `rm -rf .claude/skills/ai-toolkit-example/skills/repo-refresh`, a run restored both files and printed `reinstalled @remekgdansk/ai-toolkit-example 0.4.0 -> 0.4.0 (0 changed, 0 added, 0 removed, 3 unchanged)` followed by the reload line (F1 fix; not yet published).
+
+### Claude Code (Progress 2.9)
+
+Confirmed by the author: in Claude Code from `critical-path`, after `/reload-plugins`, the `repo-refresh` description showed the new "clean up after a pull request was merged" wording, and `/ai-toolkit-example:repo-refresh` ran `plan` normally.

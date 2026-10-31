@@ -60,11 +60,15 @@ function sha256(data: Uint8Array | string): string {
 }
 
 /** Deterministic hash of a whole folder: every directory and file path, plus file contents. */
-function hashTree(root: string): string {
+/** Hash of every path under `root`; `exclude` drops those paths and everything under them. */
+function hashTree(root: string, exclude: readonly string[] = []): string {
   const entries: string[] = [];
   const walk = (dir: string, relative: string): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const childRelative = relative === "" ? entry.name : `${relative}/${entry.name}`;
+      if (exclude.includes(childRelative)) {
+        continue;
+      }
       const childPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         entries.push(`d ${childRelative}`);
@@ -484,8 +488,7 @@ test("19. a full update from an older version removes a dropped skill and leaves
   writeAt(root, "CLAUDE.md", "# Consumer rules\n");
   assertExit(run(root, "install"), 0);
   simulateOldInstall(root, "0.0.1");
-  const consumerPaths = ["package.json", "CLAUDE.md", ".claude/skills/other/SKILL.md"];
-  const consumerBefore = consumerPaths.map((relative) => readFileSync(at(root, relative)));
+  const consumerBefore = hashTree(root, [TARGET_DIR, MANIFEST]);
 
   const result = run(root, "install");
 
@@ -506,7 +509,7 @@ test("19. a full update from an older version removes a dropped skill and leaves
   assert.equal(manifest.version, CURRENT_VERSION);
   assert.deepEqual(manifest.files.map((file) => file.path), shippedTargets());
   assert.ok(!manifest.createdDirs.some((dir) => dir.includes("old-skill")), "dropped skill folders no longer recorded");
-  consumerPaths.forEach((relative, index) => assert.deepEqual(readFileSync(at(root, relative)), consumerBefore[index], relative));
+  assert.equal(hashTree(root, [TARGET_DIR, MANIFEST]), consumerBefore, "everything outside the plugin folder and manifest is unchanged");
 });
 
 test("20. a same-version re-run reports nothing changed and leaves the folder unchanged", (t) => {
@@ -571,4 +574,36 @@ test("23. a recorded version that is not plain x.y.z reports a replacement", (t)
   assertExit(result, 0);
   assert.ok(result.stdout.includes(`replaced ${PACKAGE_NAME} local-build -> ${CURRENT_VERSION} (`), result.stdout);
   assert.equal(readManifest(root).version, CURRENT_VERSION);
+});
+
+test("24. a same-version re-run that restores a deleted skill does not report nothing changed", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  const installed = hashTree(root);
+  rmSync(at(root, path.posix.dirname(SKILL_MD)), { recursive: true });
+
+  const result = run(root, "install");
+
+  assertExit(result, 0);
+  assert.doesNotMatch(result.stdout, /nothing changed/);
+  assert.ok(
+    result.stdout.includes(`reinstalled ${PACKAGE_NAME} ${CURRENT_VERSION} -> ${CURRENT_VERSION} (0 changed, 0 added, 0 removed, 3 unchanged)`),
+    result.stdout,
+  );
+  assert.match(result.stdout, /\/reload-plugins/);
+  assert.ok(existsSync(at(root, SKILL_MD)) && existsSync(at(root, REFRESH_SCRIPT)), "skill files restored");
+  assert.equal(hashTree(root), installed);
+});
+
+test("25. a recorded version numerically equal but spelled differently reports a replacement", (t) => {
+  const root = makeConsumer(t);
+  assertExit(run(root, "install"), 0);
+  const manifest = readManifest(root);
+  manifest.version = `0${CURRENT_VERSION}`;
+  writeManifestJson(root, manifest);
+
+  const result = run(root, "install");
+
+  assertExit(result, 0);
+  assert.ok(result.stdout.includes(`replaced ${PACKAGE_NAME} 0${CURRENT_VERSION} -> ${CURRENT_VERSION} (`), result.stdout);
 });
