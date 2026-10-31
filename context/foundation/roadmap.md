@@ -9,7 +9,7 @@ main_goal: learn
 top_blocker: time
 milestone_id: first-registry-delivered-toolkit
 milestone_seq: 1
-milestone_status: open           # open | done
+milestone_status: done           # open | done
 ---
 
 # Roadmap: ai-toolkit-example
@@ -20,7 +20,7 @@ milestone_status: open           # open | done
 
 ## Milestone
 
-**M-1: First registry-delivered toolkit** — Status: open
+**M-1: First registry-delivered toolkit** — Status: done
 
 - **Intent:** Prove the shared-registry distribution loop end to end for Claude Code: a CI-published version installs into `critical-path`, the repo-refresh skill works there safely, updates deliver new content, and uninstall leaves the repo as it was.
 - **Source materials:** `context/foundation/prd.md` (v1)
@@ -182,6 +182,8 @@ None. Each cross-cutting element (package metadata, registry config, test harnes
 - **Automatic updates** — Why parked: PRD Non-Goals.
 
 ## Milestone History
+
+- **M-1: First registry-delivered toolkit** (`first-registry-delivered-toolkit`) — closed 2026-10-31. A CI-published version (0.4.1) installs into `critical-path` locally and in its CI, the repo-refresh skill deletes only merged branches after confirmation, updates replace content with nothing stale or duplicated, and uninstall returns the repo to its pre-install state.
 
 ## Done
 
