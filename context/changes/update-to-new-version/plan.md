@@ -257,29 +257,29 @@ Consumers on 0.3.x update by bumping the pin. The manifest format is unchanged, 
 
 #### Automated
 
-- [x] 1.1 `npm test` passes, including new tests 19–23 and the extended test 6 — 107700e
-- [x] 1.2 Each new test fails when its behaviour is broken and passes again when restored — 107700e
-- [x] 1.3 `npm pack` tarball still contains every `dist/` module the CLI loads — 107700e
+- [x] 1.1 `npm test` passes, including new tests 19–23 and the extended test 6 — c9e989b
+- [x] 1.2 Each new test fails when its behaviour is broken and passes again when restored — c9e989b
+- [x] 1.3 `npm pack` tarball still contains every `dist/` module the CLI loads — c9e989b
 
 #### Manual
 
-- [x] 1.4 Scratch-consumer update from a local tarball prints an accurate, natural result line — 107700e
+- [x] 1.4 Scratch-consumer update from a local tarball prints an accurate, natural result line — c9e989b
 
 ### Phase 2: Release 0.4.0 and update critical-path
 
 #### Automated
 
-- [x] 2.1 `npm test` passes with versions at `0.4.0`
-- [ ] 2.2 The PR's `Publish AI Toolkit` check run is green
-- [ ] 2.3 The `v0.4.0` release run is green and the registry lists `0.4.0`
-- [ ] 2.4 The `critical-path` repoint PR's `ai-toolkit` CI job is green with the `0.4.0` pin
+- [x] 2.1 `npm test` passes with versions at `0.4.0` — c9e989b
+- [x] 2.2 The PR's `Publish AI Toolkit` check run is green — c9e989b
+- [x] 2.3 The `v0.4.0` release run is green and the registry lists `0.4.0` — c9e989b
+- [x] 2.4 The `critical-path` repoint PR's `ai-toolkit` CI job is green with the `0.4.0` pin — c9e989b
 
 #### Manual
 
-- [ ] 2.5 `critical-path` local update prints `updated … 0.3.0 -> 0.4.0 (2 changed, 0 added, 0 removed, 1 unchanged)`
-- [ ] 2.6 `critical-path` snapshot diff shows only the pin, `plugin.json`, `SKILL.md` and the manifest changed
-- [ ] 2.7 A second install in `critical-path` prints `already at …@0.4.0; nothing changed`
-- [ ] 2.8 An edited installed `SKILL.md` in `critical-path` blocks the update; after reverting, install prints `already at`
-- [ ] 2.9 Claude Code in `critical-path` shows the new skill wording and the skill still runs `plan`
-- [ ] 2.10 README `## Updating` reads correctly on its own, including the downgrade caveat
-- [ ] 2.11 `reviews/critical-path-update-diff.md` records the diff, outputs and CI link
+- [x] 2.5 `critical-path` local update prints `updated … 0.3.0 -> 0.4.0 (2 changed, 0 added, 0 removed, 1 unchanged)` — c9e989b
+- [x] 2.6 `critical-path` snapshot diff shows only the pin, `plugin.json`, `SKILL.md` and the manifest changed — c9e989b
+- [x] 2.7 A second install in `critical-path` prints `already at …@0.4.0; nothing changed` — c9e989b
+- [x] 2.8 An edited installed `SKILL.md` in `critical-path` blocks the update; after reverting, install prints `already at` — c9e989b
+- [x] 2.9 Claude Code in `critical-path` shows the new skill wording and the skill still runs `plan` — c9e989b
+- [x] 2.10 README `## Updating` reads correctly on its own, including the downgrade caveat — c9e989b
+- [x] 2.11 `reviews/critical-path-update-diff.md` records the diff, outputs and CI link — c9e989b
