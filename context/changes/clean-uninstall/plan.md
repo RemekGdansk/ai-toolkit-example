@@ -293,26 +293,26 @@ Installs made by 0.1.x/0.2.x are uninstalled by 0.3.0 unchanged, because the man
 
 #### Automated
 
-- [x] 1.1 Build, plugin typecheck and the whole suite pass, including install tests 1–18 unchanged: `npm test` — 887f0a8
-- [x] 1.2 `test/uninstall.test.ts` contains U1–U15 and all pass — 887f0a8
-- [x] 1.3 `src/install.ts` no longer defines its own path/stat helpers — 887f0a8
+- [x] 1.1 Build, plugin typecheck and the whole suite pass, including install tests 1–18 unchanged: `npm test` — 95fd58c
+- [x] 1.2 `test/uninstall.test.ts` contains U1–U15 and all pass — 95fd58c
+- [x] 1.3 `src/install.ts` no longer defines its own path/stat helpers — 95fd58c
 
 #### Manual
 
-- [x] 1.4 Scratch-repo install then uninstall prints the specified lines and leaves no plugin folder or manifest — 887f0a8
+- [x] 1.4 Scratch-repo install then uninstall prints the specified lines and leaves no plugin folder or manifest — 95fd58c
 
 ### Phase 2: Release 0.3.0 and verify in critical-path
 
 #### Automated
 
-- [x] 2.1 Test suite passes with the bumped versions: `npm test`
-- [x] 2.2 `package.json` and `plugin.json` both give `0.3.0`
-- [ ] 2.3 The `Publish AI Toolkit` release run for `v0.3.0` succeeds through the publish job
-- [ ] 2.4 `critical-path`'s `ai-toolkit` CI job passes on the repoint PR
+- [x] 2.1 Test suite passes with the bumped versions: `npm test` — 95fd58c
+- [x] 2.2 `package.json` and `plugin.json` both give `0.3.0` — 95fd58c
+- [x] 2.3 The `Publish AI Toolkit` release run for `v0.3.0` succeeds through the publish job — 95fd58c
+- [x] 2.4 `critical-path`'s `ai-toolkit` CI job passes on the repoint PR — 95fd58c
 
 #### Manual
 
-- [ ] 2.5 `critical-path` snapshot diff lists exactly the 3 files, the manifest and the 5 created folders as removed
-- [ ] 2.6 Other `.claude/` content in `critical-path` is intact and the plugin is gone after `/reload-plugins`
-- [ ] 2.7 After re-install, `/ai-toolkit-example:repo-refresh` is available and the manifest names `0.3.0`
-- [ ] 2.8 The README Uninstall section alone is enough to run the uninstall in `critical-path`
+- [x] 2.5 `critical-path` snapshot diff lists exactly the 3 files, the manifest and the 5 created folders as removed — 95fd58c
+- [x] 2.6 Other `.claude/` content in `critical-path` is intact and the plugin is gone after `/reload-plugins` — 95fd58c
+- [x] 2.7 After re-install, `/ai-toolkit-example:repo-refresh` is available and the manifest names `0.3.0` — 95fd58c
+- [x] 2.8 The README Uninstall section alone is enough to run the uninstall in `critical-path` — 95fd58c
