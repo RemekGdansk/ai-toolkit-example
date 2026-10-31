@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { TARGET_DIR } from "./payload.js";
+import { abs, lstatOf } from "./fs-utils.js";
+import { listPayload, TARGET_DIR } from "./payload.js";
 
 /** Manifest location, POSIX-relative to the consumer root. */
 export const MANIFEST_PATH = ".claude/.ai-toolkit-example-manifest.json";
@@ -74,6 +75,45 @@ export function serializeManifest(manifest: Manifest): string {
 
 export function writeManifest(root: string, manifest: Manifest): void {
   writeFileSync(manifestFilePath(root), serializeManifest(manifest));
+}
+
+/** SHA-256 of every file the running package ships, keyed by its consumer target path. */
+export function shippedHashes(): Map<string, string> {
+  return new Map(listPayload().map((file) => [file.targetPath, sha256(readFileSync(file.sourcePath))]));
+}
+
+export interface EditCheck {
+  /** Managed files the consumer changed, in manifest order. */
+  readonly edited: string[];
+  /** Current hash of every unedited managed file that exists. */
+  readonly currentHashes: Map<string, string>;
+}
+
+/**
+ * Finds managed files the consumer changed: the path exists and is not a regular file, or its hash
+ * matches neither the recorded one nor the shipped one (a file already holding the shipped content is
+ * what an interrupted upgrade leaves). Missing paths are neither edited nor unedited.
+ */
+export function findEditedFiles(
+  root: string,
+  files: readonly ManifestFile[],
+  shipped: ReadonlyMap<string, string>,
+): EditCheck {
+  const edited: string[] = [];
+  const currentHashes = new Map<string, string>();
+  for (const { path: filePath, sha256: recorded } of files) {
+    const stats = lstatOf(abs(root, filePath));
+    if (stats === undefined) {
+      continue;
+    }
+    const current = stats.isFile() ? sha256(readFileSync(abs(root, filePath))) : undefined;
+    if (current === undefined || (current !== recorded && current !== shipped.get(filePath))) {
+      edited.push(filePath);
+    } else {
+      currentHashes.set(filePath, current);
+    }
+  }
+  return { edited, currentHashes };
 }
 
 function compare(a: string, b: string): number {

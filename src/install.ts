@@ -1,8 +1,8 @@
-import { lstatSync, mkdirSync, readFileSync, readdirSync, rmdirSync, rmSync, statSync, writeFileSync } from "node:fs";
-import type { Stats } from "node:fs";
+import { mkdirSync, readFileSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { MANIFEST_PATH, ManifestError, readManifest, sha256, writeManifest } from "./manifest.js";
+import { abs, ancestors, byDepthAscending, isEmptyDir, lstatOf, statOf } from "./fs-utils.js";
+import { findEditedFiles, MANIFEST_PATH, ManifestError, readManifest, sha256, shippedHashes, writeManifest } from "./manifest.js";
 import type { Manifest, ManifestFile } from "./manifest.js";
 import { listPayload, PLUGIN_NAME, readPackageInfo, TARGET_DIR } from "./payload.js";
 
@@ -50,26 +50,12 @@ export function install(): number {
   const previousFiles = new Map<string, string>((previous?.files ?? []).map((file) => [file.path, file.sha256]));
   const targetPaths = new Set(payload.map((file) => file.targetPath));
   const staleFiles = [...previousFiles.keys()].filter((filePath) => !targetPaths.has(filePath));
-  const shippedHashes = new Map(payload.map((file) => [file.targetPath, sha256(readFileSync(file.sourcePath))]));
 
-  const localEdits: string[] = [];
   const conflicts = new Set<string>();
 
   // Guard: local edit. A managed file that exists but matches neither its recorded hash nor the
   // shipped one (a file already holding the shipped content is what an interrupted upgrade leaves).
-  const currentHashes = new Map<string, string>();
-  for (const [filePath, recorded] of previousFiles) {
-    const stats = lstatOf(abs(root, filePath));
-    if (stats === undefined) {
-      continue;
-    }
-    const current = stats.isFile() ? sha256(readFileSync(abs(root, filePath))) : undefined;
-    if (current === undefined || (current !== recorded && current !== shippedHashes.get(filePath))) {
-      localEdits.push(filePath);
-    } else {
-      currentHashes.set(filePath, current);
-    }
-  }
+  const { edited: localEdits, currentHashes } = findEditedFiles(root, previous?.files ?? [], shippedHashes());
 
   // Guard: unmanaged conflict. The plugin folder with no manifest, or a target path install doesn't own.
   if (previous === undefined && lstatOf(abs(root, TARGET_DIR)) !== undefined) {
@@ -188,46 +174,4 @@ function printGuardFailure(localEdits: readonly string[], conflicts: readonly st
 
 function printError(message: string): void {
   console.error(`${PREFIX} ${message}`);
-}
-
-/** Absolute path for a POSIX path relative to the consumer root. */
-function abs(root: string, relative: string): string {
-  return path.join(root, ...relative.split("/"));
-}
-
-/** ".claude/skills/x/file" -> [".claude", ".claude/skills", ".claude/skills/x"] */
-function ancestors(relative: string): string[] {
-  const segments = relative.split("/").slice(0, -1);
-  return segments.map((_, index) => segments.slice(0, index + 1).join("/"));
-}
-
-function byDepthAscending(a: string, b: string): number {
-  const depth = a.split("/").length - b.split("/").length;
-  return depth !== 0 ? depth : a < b ? -1 : a > b ? 1 : 0;
-}
-
-function isEmptyDir(absolute: string): boolean {
-  return lstatOf(absolute)?.isDirectory() === true && readdirSync(absolute).length === 0;
-}
-
-/** lstat that returns undefined for a missing path. */
-function lstatOf(absolute: string): Stats | undefined {
-  return missingAsUndefined(() => lstatSync(absolute));
-}
-
-/** stat (follows symlinks) that returns undefined for a missing path. */
-function statOf(absolute: string): Stats | undefined {
-  return missingAsUndefined(() => statSync(absolute));
-}
-
-function missingAsUndefined(read: () => Stats): Stats | undefined {
-  try {
-    return read();
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT" || code === "ENOTDIR") {
-      return undefined;
-    }
-    throw error;
-  }
 }

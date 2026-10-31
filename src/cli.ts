@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import process from "node:process";
 import { install } from "./install.js";
+import { uninstall } from "./uninstall.js";
 
 const PREFIX = "ai-toolkit-example:";
 
@@ -8,6 +9,7 @@ const USAGE = `Usage: ai-toolkit-example <command>
 
 Commands:
   install    Install the toolkit's skills into the current repo as a Claude Code plugin
+  uninstall  Remove everything install added, using its manifest
 
 Options:
   -h, --help Show this help`;
@@ -20,8 +22,9 @@ function main(args: readonly string[]): number {
     return 0;
   }
 
-  // `install` takes no arguments; refusing them keeps `install --help` from installing.
-  if (command === "install" && rest.length > 0) {
+  // `install` and `uninstall` take no arguments; refusing them keeps `install --help` from
+  // installing and `uninstall --help` from removing.
+  if ((command === "install" || command === "uninstall") && rest.length > 0) {
     console.error(`${PREFIX} unexpected argument "${rest[0]}"`);
     console.error(`${PREFIX} ${USAGE}`);
     return 2;
@@ -29,6 +32,10 @@ function main(args: readonly string[]): number {
 
   if (command === "install") {
     return install();
+  }
+
+  if (command === "uninstall") {
+    return uninstall();
   }
 
   console.error(`${PREFIX} unknown command "${command}"`);
