@@ -257,19 +257,19 @@ Consumers on 0.3.x update by bumping the pin. The manifest format is unchanged, 
 
 #### Automated
 
-- [x] 1.1 `npm test` passes, including new tests 19–23 and the extended test 6
-- [x] 1.2 Each new test fails when its behaviour is broken and passes again when restored
-- [x] 1.3 `npm pack` tarball still contains every `dist/` module the CLI loads
+- [x] 1.1 `npm test` passes, including new tests 19–23 and the extended test 6 — 107700e
+- [x] 1.2 Each new test fails when its behaviour is broken and passes again when restored — 107700e
+- [x] 1.3 `npm pack` tarball still contains every `dist/` module the CLI loads — 107700e
 
 #### Manual
 
-- [x] 1.4 Scratch-consumer update from a local tarball prints an accurate, natural result line
+- [x] 1.4 Scratch-consumer update from a local tarball prints an accurate, natural result line — 107700e
 
 ### Phase 2: Release 0.4.0 and update critical-path
 
 #### Automated
 
-- [ ] 2.1 `npm test` passes with versions at `0.4.0`
+- [x] 2.1 `npm test` passes with versions at `0.4.0`
 - [ ] 2.2 The PR's `Publish AI Toolkit` check run is green
 - [ ] 2.3 The `v0.4.0` release run is green and the registry lists `0.4.0`
 - [ ] 2.4 The `critical-path` repoint PR's `ai-toolkit` CI job is green with the `0.4.0` pin

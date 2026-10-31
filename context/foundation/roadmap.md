@@ -147,7 +147,7 @@ None. Each cross-cutting element (package metadata, registry config, test harnes
 - **Parallel with:** S-04, S-05
 - **Blockers:** —
 - **Unknowns:**
-  - What happens to an installed file the user edited locally when an update replaces it? — Owner: author. Block: no.
+  - ~~What happens to an installed file the user edited locally when an update replaces it? — Owner: author. Block: no.~~ Resolved (update-to-new-version): the update refuses with nothing written; move the edit out and re-run.
 - **Risk:** Last because it needs two published versions to exercise; the risk is stale content or a clobbered local edit, both raised in the FR-007 counter-arguments.
 - **Status:** in-progress
 
