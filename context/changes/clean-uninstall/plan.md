@@ -305,14 +305,14 @@ Installs made by 0.1.x/0.2.x are uninstalled by 0.3.0 unchanged, because the man
 
 #### Automated
 
-- [x] 2.1 Test suite passes with the bumped versions: `npm test`
-- [x] 2.2 `package.json` and `plugin.json` both give `0.3.0`
-- [ ] 2.3 The `Publish AI Toolkit` release run for `v0.3.0` succeeds through the publish job
-- [ ] 2.4 `critical-path`'s `ai-toolkit` CI job passes on the repoint PR
+- [x] 2.1 Test suite passes with the bumped versions: `npm test` — 95fd58c
+- [x] 2.2 `package.json` and `plugin.json` both give `0.3.0` — 95fd58c
+- [x] 2.3 The `Publish AI Toolkit` release run for `v0.3.0` succeeds through the publish job — 95fd58c
+- [x] 2.4 `critical-path`'s `ai-toolkit` CI job passes on the repoint PR — 95fd58c
 
 #### Manual
 
-- [ ] 2.5 `critical-path` snapshot diff lists exactly the 3 files, the manifest and the 5 created folders as removed
-- [ ] 2.6 Other `.claude/` content in `critical-path` is intact and the plugin is gone after `/reload-plugins`
-- [ ] 2.7 After re-install, `/ai-toolkit-example:repo-refresh` is available and the manifest names `0.3.0`
-- [ ] 2.8 The README Uninstall section alone is enough to run the uninstall in `critical-path`
+- [x] 2.5 `critical-path` snapshot diff lists exactly the 3 files, the manifest and the 5 created folders as removed — 95fd58c
+- [x] 2.6 Other `.claude/` content in `critical-path` is intact and the plugin is gone after `/reload-plugins` — 95fd58c
+- [x] 2.7 After re-install, `/ai-toolkit-example:repo-refresh` is available and the manifest names `0.3.0` — 95fd58c
+- [x] 2.8 The README Uninstall section alone is enough to run the uninstall in `critical-path` — 95fd58c
